@@ -1,0 +1,12 @@
+# Copie para .envrc (não versionado) e ajuste os valores para o seu ambiente local.
+# direnv: https://direnv.net/
+
+export ASPNETCORE_ENVIRONMENT=Development
+export ASPNETCORE_URLS=http://localhost:5181
+
+# Chave de API exigida no header X-Api-Key pelas requisições ao serviço.
+export ApiKey__Value=local-dev-key
+
+# Preenchidos nas próximas fases (banco de dados / blob storage / INPI):
+# export ConnectionStrings__Postgres=
+# export BlobStorage__ConnectionString=

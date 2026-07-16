@@ -4,7 +4,7 @@ namespace Kodx.Rpi.Api.Security;
 
 public sealed class ApiKeyMiddleware(RequestDelegate next, ILogger<ApiKeyMiddleware> logger)
 {
-    private static readonly string[] ExemptPathPrefixes = ["/health", "/swagger"];
+    private static readonly string[] ExemptPathPrefixes = ["/health", "/swagger", "/favicon.ico"];
 
     public async Task InvokeAsync(HttpContext context, IOptions<ApiKeyOptions> options)
     {

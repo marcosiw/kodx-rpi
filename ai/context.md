@@ -9,12 +9,12 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 ## Status atual
 
-Fase de scaffolding inicial do repositório (ainda sem código da aplicação).
+Fase 1 concluída (repositório criado e commit inicial enviado). Próximo passo: esqueleto da aplicação .NET (fase 2).
 
 ## Plano de implementação (por fases, validadas uma a uma)
 
-1. Scaffolding do repositório (docs de IA, git, estrutura de pastas) — **em andamento**
-2. Esqueleto da aplicação .NET (camadas DDD, Swagger, auth por API key, logging estruturado, Docker, CI básico)
+1. ~~Scaffolding do repositório (docs de IA, git, estrutura de pastas)~~ — **concluído**
+2. Esqueleto da aplicação .NET (camadas DDD, Swagger, auth por API key, logging estruturado, Docker, CI básico) — **próximo**
 3. Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)
 4. Download de RPIs do site do INPI
 5. Conversão PDF → TXT
@@ -26,8 +26,10 @@ Fase de scaffolding inicial do repositório (ainda sem código da aplicação).
 
 ## Decisões tomadas
 
-- Repositório GitHub: `git@github.com:marcosiw/kodx-rpi.git`
+- Repositório GitHub: `git@github.com:marcosiw/kodx-rpi.git` (branch padrão `main`).
 - Docs para IA ficam em `ai/`, com `ai/context.md` cumprindo o papel de guia principal (equivalente a um CLAUDE.md).
+- `specs/` é versionado junto ao código (fonte de verdade da especificação).
+- Fluxo de branches: cada fase do plano é implementada em uma branch própria a partir de `main`; ao finalizar, o merge em `main` é feito via **squash** (histórico enxuto na main, detalhado preservado na branch de origem).
 
 ## Perguntas em aberto
 

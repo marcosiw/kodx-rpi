@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Kodx.Rpi.Api/Kodx.Rpi.Api.csproj" />
+    <Project Path="src/Kodx.Rpi.Application/Kodx.Rpi.Application.csproj" />
+    <Project Path="src/Kodx.Rpi.Domain/Kodx.Rpi.Domain.csproj" />
+    <Project Path="src/Kodx.Rpi.Infrastructure/Kodx.Rpi.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Kodx.Rpi.Application.Tests/Kodx.Rpi.Application.Tests.csproj" />
+    <Project Path="tests/Kodx.Rpi.Infrastructure.Tests/Kodx.Rpi.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

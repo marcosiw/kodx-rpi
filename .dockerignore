@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+**/*.user
+tests/
+specs/
+ai/
+.git/
+.github/
+.obsidian/

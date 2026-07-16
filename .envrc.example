@@ -1,0 +1,18 @@
+# Copie para .envrc (não versionado) e ajuste os valores para o seu ambiente local.
+# direnv: https://direnv.net/
+#
+# Usado ao rodar via terminal (dotnet run, scripts, docker). Se for debugar
+# pela IDE (Visual Studio/Rider), que não herda o shell do direnv, copie
+# src/Kodx.Rpi.Api/Properties/launchSettings.json.example para launchSettings.json
+# e repita os mesmos valores lá — é o mesmo mecanismo (variáveis de ambiente),
+# só entregue por um caminho diferente.
+
+export ASPNETCORE_ENVIRONMENT=Development
+export ASPNETCORE_URLS=http://localhost:5181
+
+# Chave de API exigida no header X-Api-Key pelas requisições ao serviço.
+export ApiKey__Value=local-dev-key
+
+# Preenchidos nas próximas fases (banco de dados / blob storage / INPI):
+# export ConnectionStrings__Postgres=
+# export BlobStorage__ConnectionString=

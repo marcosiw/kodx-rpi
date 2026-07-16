@@ -1,0 +1,22 @@
+# Obsidian (usado apenas para visualizar/editar os specs localmente)
+.obsidian/
+
+# .NET
+bin/
+obj/
+out/
+*.user
+
+# Testes
+[Tt]est[Rr]esult*/
+coverage*/
+
+# direnv (segredos locais)
+.envrc
+.env
+
+# Editor / OS
+.vs/
+.vscode/
+.idea/
+.DS_Store

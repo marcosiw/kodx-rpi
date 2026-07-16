@@ -39,6 +39,8 @@ Fase 2 implementada na branch `feat/app-skeleton`, aguardando validação para m
   - Docker multi-stage (`Dockerfile` na raiz, `.dockerignore`), imagem final expõe porta 8080.
   - CI (`.github/workflows/ci.yml`): jobs `security` (dotnet list package --vulnerable) → `test` (dotnet test) → `build` → `deploy` (só dispara em tags `v*.*.*`; hoje só builda a imagem Docker, **push/deploy real para o Linode ainda não implementado** — depende de decisões de infra/registry em fase futura).
   - direnv: `.envrc.example` versionado como template; `.envrc` real ignorado pelo git.
+  - Config local na IDE (Visual Studio/Rider): **um único mecanismo de config (variáveis de ambiente)** em todos os contextos — shell (`.envrc`/direnv), Docker/produção (env do orquestrador) e IDE. Para a IDE, que não herda o shell do direnv ao ser aberta direto (ex: ícone do Windows), usamos `src/Kodx.Rpi.Api/Properties/launchSettings.json`, que o Visual Studio/Rider já leem nativamente para variáveis de ambiente ao rodar o profile — **esse arquivo saiu do git** (contém valores locais como `ApiKey__Value`) e um `launchSettings.json.example` (com valores vazios) é o template versionado, no mesmo padrão do `.envrc.example`.
+    - Avaliamos e descartamos `dotnet user-secrets`: ele só carrega em `Development` a partir de um arquivo fora do repo (`~/.microsoft/usersecrets/<GUID>/secrets.json`), nunca é publicado/empacotado e **não existe dentro de containers Docker** — seria uma segunda fonte de verdade desconectada de Docker/produção, o que o usuário preferiu evitar.
 
 ## Perguntas em aberto
 

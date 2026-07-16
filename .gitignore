@@ -15,6 +15,9 @@ coverage*/
 .envrc
 .env
 
+# launchSettings.json contém valores locais (ex: ApiKey__Value); versionamos só o .example
+**/Properties/launchSettings.json
+
 # Editor / OS
 .vs/
 .vscode/

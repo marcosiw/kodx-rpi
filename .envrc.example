@@ -13,6 +13,8 @@ export ASPNETCORE_URLS=http://localhost:5181
 # Chave de API exigida no header X-Api-Key pelas requisições ao serviço.
 export ApiKey__Value=local-dev-key
 
-# Preenchidos nas próximas fases (banco de dados / blob storage / INPI):
-# export ConnectionStrings__Postgres=
+# Postgres local (docker-compose.yml na raiz do repo: docker compose up -d)
+export ConnectionStrings__Postgres="Host=localhost;Port=5432;Database=kodx_rpi;Username=postgres;Password=postgres"
+
+# Preenchido em fase futura (blob storage / INPI):
 # export BlobStorage__ConnectionString=

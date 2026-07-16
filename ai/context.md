@@ -9,13 +9,13 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 ## Status atual
 
-Fase 2 mergeada em `main` (PR #1). Próximo passo: fase 3 (modelagem do banco Postgres), em nova branch a partir de `main`.
+Fase 3 (schema Postgres) implementada na branch `feat/postgres-schema`, aguardando validação — **não testada de ponta a ponta contra um Postgres real ainda** (ver nota em Decisões tomadas).
 
 ## Plano de implementação (por fases, validadas uma a uma)
 
 1. ~~Scaffolding do repositório (docs de IA, git, estrutura de pastas)~~ — **concluído**
 2. ~~Esqueleto da aplicação .NET (camadas DDD, Swagger, auth por API key, logging estruturado, Docker, CI básico)~~ — **concluído** (mergeado em `main` via PR #1)
-3. Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)
+3. Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB) — **implementado, em validação** (branch `feat/postgres-schema`)
 4. Download de RPIs do site do INPI
 5. Conversão PDF → TXT
 6. Armazenamento no Azure Blob Storage (seguindo estrutura/tags já existentes)
@@ -43,9 +43,18 @@ Fase 2 mergeada em `main` (PR #1). Próximo passo: fase 3 (modelagem do banco Po
   - Config local na IDE (Visual Studio/Rider): **um único mecanismo de config (variáveis de ambiente)** em todos os contextos — shell (`.envrc`/direnv), Docker/produção (env do orquestrador) e IDE. Para a IDE, que não herda o shell do direnv ao ser aberta direto (ex: ícone do Windows), usamos `src/Kodx.Rpi.Api/Properties/launchSettings.json`, que o Visual Studio/Rider já leem nativamente para variáveis de ambiente ao rodar o profile — **esse arquivo saiu do git** (contém valores locais como `ApiKey__Value`) e um `launchSettings.json.example` (com valores vazios) é o template versionado, no mesmo padrão do `.envrc.example`.
     - Avaliamos e descartamos `dotnet user-secrets`: ele só carrega em `Development` a partir de um arquivo fora do repo (`~/.microsoft/usersecrets/<GUID>/secrets.json`), nunca é publicado/empacotado e **não existe dentro de containers Docker** — seria uma segunda fonte de verdade desconectada de Docker/produção, o que o usuário preferiu evitar.
 
+- Schema Postgres (fase 3, EF Core 10 + Npgsql, `EFCore.NamingConventions` para snake_case):
+  - **Referência**: existe um repositório legado (`/mnt/e/projects/kodx-legacy`, `Kodx.Producao`, .NET/EF Core 6) que já roda em produção. Ele **não persiste** a RPI em si (entidade `Rpi` é só em memória) nem tem histórico de tentativas de download/conversão — esse é o gap que a fase 3 preenche. A tabela `publicacoes_pi` do legado guarda publicações em colunas de texto flat (`cabecalho1-3`, `conteudo`, `numero`, `pagina`, `index_inicio/fim`, `rodape`, `orgao`), ligadas à RPI só por `caderno_id` (tipo) + `edicao`, sem FK real.
+  - **`RpiTipo`** (`Kodx.Rpi.Domain/Rpis/RpiTipo.cs`): reaproveita exatamente os valores do enum do legado (`Comunicados=1 ... TopografiaCircuitos=8`).
+  - **`rpi_editions`**: nova tabela (o legado nunca persistiu isso) — `id`, `edicao`, `tipo`, `data_publicacao`, `created_at`; índice único em `(edicao, tipo)`.
+  - **`rpi_processing_attempts`**: nova tabela cobrindo o gap de auditoria — `id`, `rpi_edition_id` (FK), `stage` (enum `ProcessingStage`: `Download`, `ConvertToTxt`, `ExtractPublications`, `UploadBlob` — 4 etapas independentes, cada uma com sua própria tentativa/status), `status` (`Success`/`Failure`), `error_message`, `started_at`, `finished_at`.
+  - **`publications`**: `id`, `rpi_edition_id` (FK), `numero` (coluna real, indexada — decisão explícita do usuário, mesmo a spec sugerindo que filtragem fina ficaria por conta de outros serviços), `payload` (jsonb, via `OwnsOne(...).ToJson()` do EF Core/Npgsql — contém `Cabecalho1-3`, `Conteudo`, `TodosNumeros`, `IndexInicio/Fim`, `Rodape`, `Pagina`, `Orgao`, equivalente ao conteúdo das colunas flat do legado, sem duplicar `Numero`), `created_at`.
+  - **Postgres local/testes**: só `docker-compose.yml` (Postgres 16, container `kodx-rpi-db`), **sem Testcontainers** — decisão explícita do usuário. Testes de integração em `Kodx.Rpi.Infrastructure.Tests/Persistence/KodxRpiDbContextTests.cs` assumem esse Postgres rodando (`docker compose up -d`) e aplicam `Database.MigrateAsync()` no `InitializeAsync`.
+  - CI: o job `test` ganhou um Postgres 16 como *service container* do GitHub Actions (não é Testcontainers, é o mecanismo nativo de `services:` do Actions) para os testes de integração rodarem no pipeline.
+  - Connection string via `ConnectionStrings__Postgres` (env var), seguindo o mesmo mecanismo único já estabelecido (`.envrc`, `launchSettings.json`/`.example`, CI). Valor local de dev: `Host=localhost;Port=5432;Database=kodx_rpi;Username=postgres;Password=postgres` (bate com o `docker-compose.yml`).
+  - Migration inicial (`InitialCreate`) gerada e o SQL foi conferido manualmente (`dotnet ef migrations script`) — sintaxe válida, `jsonb` e FKs corretos. **Atenção**: não foi possível rodar `dotnet ef database update` nem os testes de integração contra um Postgres real neste ambiente (sandbox sem Docker/sem Postgres instalado, sem sudo p/ instalar) — falta validar isso de fato rodando `docker compose up -d` seguido de `dotnet test` localmente antes de considerar a fase realmente fechada.
+
 ## Perguntas em aberto
 
-- Existe outro repositório/serviço Kodx já em produção com convenções de Blob Storage (estrutura de pastas/tags) ou parsing de publicações que devemos seguir/portar?
-- Há amostras de PDF/TXT de RPI disponíveis para desenvolver e testar a extração de publicações?
-- A infraestrutura (Postgres no Linode, Blob Storage no Azure) já está provisionada e com credenciais disponíveis para desenvolvimento, ou precisamos de mocks/containers locais por enquanto?
-- Alguma preferência de stack de testes/ferramentas .NET (ex: xUnit + Testcontainers como default), ou usar outra?
+- Há amostras de PDF/TXT de RPI disponíveis para desenvolver e testar a extração de publicações? (o legado dá a estrutura de dados, mas não substitui ter arquivos reais para testar o parsing)
+- A infraestrutura real (Postgres no Linode, Blob Storage no Azure) já está provisionada e com credenciais disponíveis para desenvolvimento/deploy, ou seguimos só com o Postgres local via docker-compose por enquanto?

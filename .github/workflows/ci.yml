@@ -57,13 +57,22 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
   deploy:
-    name: Deploy
+    name: Publicar imagem
     runs-on: ubuntu-latest
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
-      - name: Build Docker image
-        run: docker build -t kodx-rpi:${{ github.ref_name }} .
-      # TODO: publicar a imagem e realizar o deploy na instância Linode
-      # assim que o destino/registry e as credenciais forem definidos.
+      - name: Login no GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Build e publicar imagem
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}
+          docker build -t "$IMAGE:${{ github.ref_name }}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${{ github.ref_name }}"
+          docker push "$IMAGE:latest"
+      # TODO: realizar o deploy na instância Linode (pull da imagem +
+      # restart do serviço), depende de acesso/credenciais definidos.

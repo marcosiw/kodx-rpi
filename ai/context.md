@@ -9,7 +9,7 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 ## Status atual
 
-Fase 6 (Armazenamento no Azure Blob Storage) implementada e testada de ponta a ponta contra o Azure real (branch `feat/azure-blob-storage`). Falta o usuário revisar e abrir o PR. Próxima fase ao retomar: 7 (Extração e persistência das publicações individuais) — seguir o mesmo fluxo de fechamento (perguntar se o PR foi mergeado, sincronizar `main`, branch nova).
+Fase 6 (Armazenamento no Azure Blob Storage) concluída — PR #5 mergeado (squash) em `main`. Iniciando fase 7 (Extração e persistência das publicações individuais). Antes de codar, checar a pergunta em aberto sobre amostras de PDF/TXT reais (abaixo) — essencial pra esta fase, já que o legado dá a estrutura de dados mas não substitui ter arquivos reais pra testar o parsing.
 
 ## Convenção de Blob Storage do legado (confirmada contra produção real na fase 6)
 
@@ -28,7 +28,7 @@ Descoberta inicialmente por leitura do código do `kodx-legacy` (fase 3), e **co
 3. ~~Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)~~ — **concluído** (mergeado em `main` via PR #2)
 4. ~~Download de RPIs do site do INPI~~ — **concluído** (mergeado em `main` via PR #3)
 5. ~~Conversão PDF → TXT~~ — **concluído** (mergeado em `main` via PR #4)
-6. ~~Armazenamento no Azure Blob Storage~~ — **concluído** (branch `feat/azure-blob-storage`)
+6. ~~Armazenamento no Azure Blob Storage~~ — **concluído** (mergeado em `main` via PR #5)
 7. Extração e persistência das publicações individuais
 8. Endpoints privados para o Kodx API (consulta de RPI, download de PDF, busca de publicações por edição)
 9. Scripts de cronjob (Ubuntu 24.04) + documentação

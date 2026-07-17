@@ -17,7 +17,7 @@ Fase 4 (download de RPIs do INPI) implementada e **validada de ponta a ponta con
 2. ~~Esqueleto da aplicação .NET (camadas DDD, Swagger, auth por API key, logging estruturado, Docker, CI básico)~~ — **concluído** (mergeado em `main` via PR #1)
 3. ~~Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)~~ — **concluído** (mergeado em `main` via PR #2)
 4. ~~Download de RPIs do site do INPI~~ — **concluído, em validação** (branch `feat/inpi-download`)
-5. Conversão PDF → TXT
+5. Conversão PDF → TXT — **lembrete do usuário**: aproveitar a mesma lib de PDF usada na conversão pra também validar a integridade do arquivo (além da checagem leve de assinatura `%PDF` já feita na fase 4) — ex: conseguir abrir/parsear o PDF, contar páginas, etc. Ver `TASKS.md` do legado (`kodx-legacy`), que já cogita `PdfPig` (MIT, pure .NET) como substituto do `LeitorAcrobat` (COM Interop) — candidata natural pra essa fase.
 6. Armazenamento no Azure Blob Storage (seguindo estrutura/tags já existentes)
 7. Extração e persistência das publicações individuais
 8. Endpoints privados para o Kodx API (consulta de RPI, download de PDF, busca de publicações por edição)

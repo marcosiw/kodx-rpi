@@ -1,8 +1,10 @@
 namespace Kodx.Rpi.Domain.Rpis;
 
 /// <summary>
-/// Convenção de nomes de arquivo usada pelo INPI e reaproveitada pelo sistema legado
-/// (inclui o typo "circuto" em TopografiaCircuitos — precisa bater com a URL real).
+/// Convenção de nomes de arquivo usada pelo INPI (confirmada contra o calendário real em
+/// https://revistas.inpi.gov.br/rpi/, não apenas copiada do legado — ProgramasComputador
+/// divergia: o legado usava "Programas_de_Computador", mas a URL real é
+/// "Programa_de_computador". Inclui o typo real "circuto" em TopografiaCircuitos.
 /// </summary>
 public static class RpiFileNaming
 {
@@ -14,7 +16,7 @@ public static class RpiFileNaming
         [RpiTipo.IndicacoesGeograficas] = "Indicacoes_Geograficas",
         [RpiTipo.Marcas] = "Marcas",
         [RpiTipo.Patentes] = "Patentes",
-        [RpiTipo.ProgramasComputador] = "Programas_de_Computador",
+        [RpiTipo.ProgramasComputador] = "Programa_de_computador",
         [RpiTipo.TopografiaCircuitos] = "Topografia_de_circuto_Integrado"
     };
 

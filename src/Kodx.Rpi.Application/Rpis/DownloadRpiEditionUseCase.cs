@@ -5,6 +5,7 @@ namespace Kodx.Rpi.Application.Rpis;
 public sealed class DownloadRpiEditionUseCase(
     IRpiDownloader downloader,
     IRpiFileStorage fileStorage,
+    IRpiCalendar calendar,
     IRpiEditionRepository editionRepository,
     IRpiProcessingAttemptRepository attemptRepository,
     IUnitOfWork unitOfWork,
@@ -13,12 +14,27 @@ public sealed class DownloadRpiEditionUseCase(
 {
     public async Task ExecuteAsync(RpiTipo tipo, int? edicao, CancellationToken cancellationToken)
     {
-        var resolvedEdicao = edicao ?? editionCalculator.CurrentEdition();
+        int resolvedEdicao;
+        DateOnly? knownPublicationDate;
+
+        if (edicao is { } explicitEdicao)
+        {
+            resolvedEdicao = explicitEdicao;
+            knownPublicationDate = await calendar.GetPublicationDateAsync(explicitEdicao, cancellationToken);
+        }
+        else
+        {
+            // O calendário oficial já reflete o deslocamento real de feriado; só cai no
+            // cálculo por âncora se o INPI estiver fora do ar ou mudar o formato da página.
+            var mostRecent = await calendar.GetMostRecentEditionAsync(cancellationToken);
+            resolvedEdicao = mostRecent?.Edicao ?? editionCalculator.CurrentEdition();
+            knownPublicationDate = mostRecent?.DataPublicacao;
+        }
 
         var edition = await editionRepository.FindAsync(tipo, resolvedEdicao, cancellationToken);
         if (edition is null)
         {
-            var publicationDate = editionCalculator.PublicationDateFor(resolvedEdicao);
+            var publicationDate = knownPublicationDate ?? editionCalculator.PublicationDateFor(resolvedEdicao);
             edition = new RpiEdition(
                 resolvedEdicao,
                 tipo,

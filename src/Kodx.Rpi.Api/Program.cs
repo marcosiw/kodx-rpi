@@ -58,6 +58,14 @@ builder.Services.AddHttpClient<IRpiDownloader, InpiRpiDownloader>((sp, client) =
     client.DefaultRequestHeaders.UserAgent.ParseAdd(options.UserAgent);
 });
 
+builder.Services.AddHttpClient<IRpiCalendar, InpiRpiCalendar>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<InpiOptions>>().Value;
+    client.BaseAddress = new Uri(options.CalendarUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(options.UserAgent);
+});
+
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetRequiredService<IConfiguration>();

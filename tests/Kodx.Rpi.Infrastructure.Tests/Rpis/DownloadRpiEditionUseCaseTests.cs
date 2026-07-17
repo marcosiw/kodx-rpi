@@ -70,7 +70,7 @@ public sealed class DownloadRpiEditionUseCaseTests : IAsyncLifetime
         var calculator = new RpiEditionCalculator(TimeProvider.System, AnchorEdition, AnchorDate);
 
         var useCase = new DownloadRpiEditionUseCase(
-            downloader, storage, editionRepository, attemptRepository, unitOfWork, calculator, new FakeTimeProvider());
+            downloader, storage, new FakeRpiCalendar(), editionRepository, attemptRepository, unitOfWork, calculator, new FakeTimeProvider());
 
         await useCase.ExecuteAsync(RpiTipo.Patentes, edicao, CancellationToken.None);
     }
@@ -107,5 +107,15 @@ public sealed class DownloadRpiEditionUseCaseTests : IAsyncLifetime
             Saved = true;
             return Task.CompletedTask;
         }
+    }
+
+    /// <summary>Simula o calendário indisponível, forçando o fallback pro cálculo por âncora (é o que estes testes exercitam).</summary>
+    private sealed class FakeRpiCalendar : IRpiCalendar
+    {
+        public Task<RpiCalendarEntry?> GetMostRecentEditionAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<RpiCalendarEntry?>(null);
+
+        public Task<DateOnly?> GetPublicationDateAsync(int edicao, CancellationToken cancellationToken) =>
+            Task.FromResult<DateOnly?>(null);
     }
 }

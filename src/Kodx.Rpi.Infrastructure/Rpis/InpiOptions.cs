@@ -7,6 +7,9 @@ public sealed class InpiOptions
     /// <summary>URL do site do INPI de onde as RPIs em pdf são baixadas.</summary>
     public string BaseUrl { get; set; } = "http://revistas.inpi.gov.br/pdf/";
 
+    /// <summary>Página com o calendário oficial de edições (número + data de publicação real, já ajustada por feriado).</summary>
+    public string CalendarUrl { get; set; } = "https://revistas.inpi.gov.br/rpi/";
+
     /// <summary>Timeout do download em segundos. Alto porque roda em background, não amarrado ao timeout de request da API.</summary>
     public int HttpTimeoutSeconds { get; set; } = 300;
 

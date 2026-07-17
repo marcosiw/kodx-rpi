@@ -11,6 +11,13 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 Fase 3 (schema Postgres) implementada na branch `feat/postgres-schema`, aguardando validação — **não testada de ponta a ponta contra um Postgres real ainda** (ver nota em Decisões tomadas).
 
+**Próxima ação pendente**: o usuário vai reiniciar a máquina para ver se o Docker fica disponível no WSL (neste sandbox, `docker` não é encontrado — integração WSL do Docker Desktop parece desabilitada, e não há `sudo` para instalar Postgres nativo como alternativa). Assim que Docker estiver disponível, rodar para validar a fase 3:
+```
+docker compose up -d
+dotnet test
+```
+Se os testes em `Kodx.Rpi.Infrastructure.Tests/Persistence/KodxRpiDbContextTests.cs` passarem (migration aplica, round-trip do jsonb funciona), a fase 3 pode ser considerada concluída e seguir para PR/merge.
+
 ## Plano de implementação (por fases, validadas uma a uma)
 
 1. ~~Scaffolding do repositório (docs de IA, git, estrutura de pastas)~~ — **concluído**

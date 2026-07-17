@@ -9,7 +9,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ApiKey__Value": "",
-        "ConnectionStrings__Postgres": ""
+        "ConnectionStrings__Postgres": "",
+        "BlobStorage__ConnectionString": ""
       }
     },
     "https": {
@@ -20,7 +21,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ApiKey__Value": "",
-        "ConnectionStrings__Postgres": ""
+        "ConnectionStrings__Postgres": "",
+        "BlobStorage__ConnectionString": ""
       }
     }
   }

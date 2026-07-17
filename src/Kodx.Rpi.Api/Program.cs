@@ -1,3 +1,4 @@
+using Azure.Storage.Blobs;
 using Kodx.Rpi.Api.Security;
 using Kodx.Rpi.Application;
 using Kodx.Rpi.Application.Rpis;
@@ -51,6 +52,15 @@ builder.Services.AddOptions<RpiStorageOptions>().Bind(builder.Configuration.GetS
 builder.Services.AddScoped<IRpiFileStorage, LocalDiskRpiFileStorage>();
 builder.Services.AddScoped<IPdfTextExtractor, PdfPigTextExtractor>();
 builder.Services.AddScoped<ConvertRpiEditionToTxtUseCase>();
+
+builder.Services.AddOptions<RpiBlobStorageOptions>().Bind(builder.Configuration.GetSection(RpiBlobStorageOptions.SectionName));
+builder.Services.AddSingleton(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RpiBlobStorageOptions>>().Value;
+    return new BlobServiceClient(options.ConnectionString);
+});
+builder.Services.AddScoped<IRpiBlobStorage, AzureBlobRpiStorage>();
+builder.Services.AddScoped<UploadRpiEditionToBlobUseCase>();
 
 builder.Services.AddHttpClient<IRpiDownloader, InpiRpiDownloader>((sp, client) =>
 {

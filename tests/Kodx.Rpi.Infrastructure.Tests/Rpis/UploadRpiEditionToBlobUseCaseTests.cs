@@ -6,8 +6,8 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace Kodx.Rpi.Infrastructure.Tests.Rpis;
 
-/// <summary>Testes de integração: exigem o Postgres do docker-compose.yml rodando localmente. Usa um extrator de PDF fake — a extração real via PdfPig é coberta por Pdf/PdfTextExtractorTests.cs.</summary>
-public sealed class ConvertRpiEditionToTxtUseCaseTests : IAsyncLifetime
+/// <summary>Testes de integração: exigem o Postgres do docker-compose.yml rodando localmente. Usa um blob storage fake — o upload real via Azure.Storage.Blobs é validado manualmente contra o Azure real (sem emulador no projeto).</summary>
+public sealed class UploadRpiEditionToBlobUseCaseTests : IAsyncLifetime
 {
     private static readonly string ConnectionString =
         Environment.GetEnvironmentVariable("ConnectionStrings__Postgres")
@@ -22,56 +22,37 @@ public sealed class ConvertRpiEditionToTxtUseCaseTests : IAsyncLifetime
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
-    public async Task Conversao_com_sucesso_grava_tentativa_de_sucesso_e_salva_txt()
+    public async Task Upload_com_sucesso_grava_tentativa_de_sucesso_e_envia_pdf_e_txt()
     {
         var edicao = Random.Shared.Next(100000, 999999);
-        var extractor = new FakeExtractor(text: "conteúdo extraído do pdf");
-        var storage = new FakeRpiFileStorage();
+        var blobStorage = new FakeRpiBlobStorage();
 
         var editionId = await SeedEdition(edicao);
-        await Execute(edicao, extractor, storage);
+        await Execute(edicao, blobStorage);
 
         await using var context = CreateContext();
         var attempt = await context.RpiProcessingAttempts.SingleAsync(a => a.RpiEditionId == editionId);
 
         Assert.Equal(ProcessingStatus.Success, attempt.Status);
-        Assert.Equal(ProcessingStage.ConvertToTxt, attempt.Stage);
-        Assert.Equal("conteúdo extraído do pdf", storage.SavedText);
+        Assert.Equal(ProcessingStage.UploadBlob, attempt.Stage);
+        Assert.True(blobStorage.PdfUploaded);
+        Assert.True(blobStorage.TxtUploaded);
     }
 
     [Fact]
-    public async Task Conversao_com_pdf_corrompido_grava_tentativa_de_falha()
+    public async Task Upload_com_falha_grava_tentativa_de_falha_sem_lancar_excecao()
     {
         var edicao = Random.Shared.Next(100000, 999999);
-        var extractor = new FakeExtractor(exception: new InvalidOperationException("PDF corrompido (simulado)."));
-        var storage = new FakeRpiFileStorage();
+        var blobStorage = new FakeRpiBlobStorage(shouldFail: true);
 
         var editionId = await SeedEdition(edicao);
-        await Execute(edicao, extractor, storage);
+        await Execute(edicao, blobStorage);
 
         await using var context = CreateContext();
         var attempt = await context.RpiProcessingAttempts.SingleAsync(a => a.RpiEditionId == editionId);
 
         Assert.Equal(ProcessingStatus.Failure, attempt.Status);
-        Assert.Equal("PDF corrompido (simulado).", attempt.ErrorMessage);
-        Assert.Null(storage.SavedText);
-    }
-
-    [Fact]
-    public async Task Conversao_com_texto_vazio_grava_tentativa_de_falha()
-    {
-        var edicao = Random.Shared.Next(100000, 999999);
-        var extractor = new FakeExtractor(text: "   ");
-        var storage = new FakeRpiFileStorage();
-
-        var editionId = await SeedEdition(edicao);
-        await Execute(edicao, extractor, storage);
-
-        await using var context = CreateContext();
-        var attempt = await context.RpiProcessingAttempts.SingleAsync(a => a.RpiEditionId == editionId);
-
-        Assert.Equal(ProcessingStatus.Failure, attempt.Status);
-        Assert.Null(storage.SavedText);
+        Assert.Equal("Azure fora do ar (simulado).", attempt.ErrorMessage);
     }
 
     private static async Task<int> SeedEdition(int edicao)
@@ -83,15 +64,15 @@ public sealed class ConvertRpiEditionToTxtUseCaseTests : IAsyncLifetime
         return edition.Id;
     }
 
-    private static async Task Execute(int edicao, IPdfTextExtractor extractor, IRpiFileStorage storage)
+    private static async Task Execute(int edicao, IRpiBlobStorage blobStorage)
     {
         await using var context = CreateContext();
         var editionRepository = new RpiEditionRepository(context);
         var attemptRepository = new RpiProcessingAttemptRepository(context);
         var unitOfWork = new UnitOfWork(context);
 
-        var useCase = new ConvertRpiEditionToTxtUseCase(
-            storage, extractor, editionRepository, attemptRepository, unitOfWork, new FakeTimeProvider());
+        var useCase = new UploadRpiEditionToBlobUseCase(
+            new FakeRpiFileStorage(), blobStorage, editionRepository, attemptRepository, unitOfWork, new FakeTimeProvider());
 
         await useCase.ExecuteAsync(RpiTipo.Patentes, edicao, CancellationToken.None);
     }
@@ -106,26 +87,39 @@ public sealed class ConvertRpiEditionToTxtUseCaseTests : IAsyncLifetime
         return new KodxRpiDbContext(options);
     }
 
-    private sealed class FakeExtractor(string? text = null, Exception? exception = null) : IPdfTextExtractor
-    {
-        public string ExtractText(string pdfPath) => exception is not null ? throw exception : text!;
-    }
-
     private sealed class FakeRpiFileStorage : IRpiFileStorage
     {
-        public string? SavedText { get; private set; }
-
         public Task SavePdfAsync(RpiTipo tipo, int edicao, byte[] content, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Não usado nestes testes.");
 
         public string GetPdfPath(RpiTipo tipo, int edicao) => "caminho-fake.pdf";
 
-        public Task SaveTxtAsync(RpiTipo tipo, int edicao, string content, CancellationToken cancellationToken)
+        public Task SaveTxtAsync(RpiTipo tipo, int edicao, string content, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Não usado nestes testes.");
+
+        public string GetTxtPath(RpiTipo tipo, int edicao) => "caminho-fake.txt";
+    }
+
+    private sealed class FakeRpiBlobStorage(bool shouldFail = false) : IRpiBlobStorage
+    {
+        public bool PdfUploaded { get; private set; }
+        public bool TxtUploaded { get; private set; }
+
+        public Task UploadPdfAsync(RpiTipo tipo, int edicao, string localPdfPath, CancellationToken cancellationToken)
         {
-            SavedText = content;
+            if (shouldFail)
+            {
+                throw new InvalidOperationException("Azure fora do ar (simulado).");
+            }
+
+            PdfUploaded = true;
             return Task.CompletedTask;
         }
 
-        public string GetTxtPath(RpiTipo tipo, int edicao) => "caminho-fake.txt";
+        public Task UploadTxtAsync(RpiTipo tipo, int edicao, string localTxtPath, CancellationToken cancellationToken)
+        {
+            TxtUploaded = true;
+            return Task.CompletedTask;
+        }
     }
 }

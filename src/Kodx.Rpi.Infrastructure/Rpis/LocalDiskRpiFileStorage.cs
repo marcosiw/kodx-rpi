@@ -25,5 +25,8 @@ public sealed class LocalDiskRpiFileStorage(IOptions<RpiStorageOptions> options)
         await File.WriteAllTextAsync(path, content, cancellationToken);
     }
 
+    public string GetTxtPath(RpiTipo tipo, int edicao) =>
+        Path.Combine(EditionDirectory(edicao), RpiFileNaming.TxtFileName(tipo, edicao));
+
     private string EditionDirectory(int edicao) => Path.Combine(options.Value.LocalWorkingDirectory, edicao.ToString());
 }

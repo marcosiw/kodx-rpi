@@ -16,5 +16,5 @@ export ApiKey__Value=local-dev-key
 # Postgres local (docker-compose.yml na raiz do repo: docker compose up -d)
 export ConnectionStrings__Postgres="Host=localhost;Port=5432;Database=kodx_rpi;Username=postgres;Password=postgres"
 
-# Preenchido em fase futura (blob storage / INPI):
-# export BlobStorage__ConnectionString=
+# Azure Blob Storage (container "rpi", mesmo formato do backup do legado).
+export BlobStorage__ConnectionString=

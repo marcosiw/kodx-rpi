@@ -9,17 +9,17 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 ## Status atual
 
-Fase 5 (conversão PDF → TXT) concluída — PR #4 mergeado (squash) em `main`. Iniciando fase 6 (Armazenamento no Azure Blob Storage). Antes de codar, checar a pergunta em aberto sobre infra real do Blob Storage (abaixo) e a convenção do legado já registrada logo abaixo, em "Convenção de Blob Storage do legado (levantada na fase 3, ainda não implementada)".
+Fase 6 (Armazenamento no Azure Blob Storage) implementada e testada de ponta a ponta contra o Azure real (branch `feat/azure-blob-storage`). Falta o usuário revisar e abrir o PR. Próxima fase ao retomar: 7 (Extração e persistência das publicações individuais) — seguir o mesmo fluxo de fechamento (perguntar se o PR foi mergeado, sincronizar `main`, branch nova).
 
-## Convenção de Blob Storage do legado (levantada na fase 3, ainda não implementada)
+## Convenção de Blob Storage do legado (confirmada contra produção real na fase 6)
 
-Descoberta durante a exploração do `kodx-legacy` (fase 3) mas só usada até agora pra decidir o `RpiFileNaming` — o resto ainda não foi implementado, registrando aqui pra não perder até a fase 6:
+Descoberta inicialmente por leitura do código do `kodx-legacy` (fase 3), e **corrigida na fase 6** após comparar com os blobs reais já existentes no container de produção (ver decisão "Armazenamento no Azure Blob Storage" abaixo — a leitura do código sozinha levou a um formato de tag errado):
 
 - **Container Azure**: `rpi`
 - **Path do blob** (relativo ao container): `{edicao}/{nomeArquivo}` — ex: `2501/Patentes2501.pdf`, `2501/Patentes2501.txt` (mesmo nome de arquivo usado localmente, via `RpiFileNaming`)
-- **Tags aplicadas em cada blob**: `edicao` (ex: `"2501"`), `rpi` (tipo numérico do `RpiTipo`, ex: `"6"` pra Patentes), `extensao` (`"pdf"` ou `"txt"`)
+- **Tags aplicadas em cada blob**: `edicao` (ex: `"2501"`), `rpi` (**nome do tipo**, ex: `"Patentes"`, `"ContratosTecnologia"` — não o valor numérico do enum, apesar do código do legado sugerir isso por escrito), `extensao` (`"pdf"` ou `"txt"`)
 - **Arquivo de referência no legado**: `/mnt/e/projects/kodx-legacy/src/4.Dominio/Servicos/BackupRpiServico.cs` — métodos `ArquivarPdfs()`, `ArquivarTxts()`, `ObterTags()`; a classe que fala com o Azure é `Kodx.Producao.Infra.Azure/StorageBlob.cs`
-- A spec pede explicitamente seguir "o formato já existente de segregação e tags", então a fase 6 deve reproduzir isso (container `rpi`, mesmo path/tags), não inventar uma estrutura nova.
+- A spec pede explicitamente seguir "o formato já existente de segregação e tags", e isso foi confirmado batendo com os dados reais em produção, não só com o código-fonte.
 
 ## Plano de implementação (por fases, validadas uma a uma)
 
@@ -28,7 +28,7 @@ Descoberta durante a exploração do `kodx-legacy` (fase 3) mas só usada até a
 3. ~~Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)~~ — **concluído** (mergeado em `main` via PR #2)
 4. ~~Download de RPIs do site do INPI~~ — **concluído** (mergeado em `main` via PR #3)
 5. ~~Conversão PDF → TXT~~ — **concluído** (mergeado em `main` via PR #4)
-6. Armazenamento no Azure Blob Storage (seguindo estrutura/tags já existentes)
+6. ~~Armazenamento no Azure Blob Storage~~ — **concluído** (branch `feat/azure-blob-storage`)
 7. Extração e persistência das publicações individuais
 8. Endpoints privados para o Kodx API (consulta de RPI, download de PDF, busca de publicações por edição)
 9. Scripts de cronjob (Ubuntu 24.04) + documentação
@@ -82,7 +82,15 @@ Descoberta durante a exploração do `kodx-legacy` (fase 3) mas só usada até a
   - **Testes portados do `kodx-pdf`**: os testes de unidade de `PdfTextExtractor` (agrupamento de linhas, concatenação de blocos etc.) vieram junto com o código, sem depender de PDFs de amostra (usam `TextBlock`s sintéticos).
   - **Testado contra o INPI real de ponta a ponta**: baixou a edição 2891/Patentes, encadeou a conversão automaticamente, e o texto extraído do PDF real (3.162.451 bytes) bateu exatamente com o cabeçalho oficial da RPI ("Revista da Propriedade Industrial", "Nº 2891", data, nomes de autoridades), sem garble — confirma que a lógica portada do `kodx-pdf` funciona igual fora do repositório original.
 
+- Armazenamento no Azure Blob Storage (fase 6):
+  - **Infra real já provisionada** — o usuário já tinha conta de storage e container `rpi` com credenciais, então a fase foi implementada e testada direto contra o Azure real (sem emulador/Azurite no projeto), seguindo o mesmo padrão de rigor das fases 4/5 (INPI real).
+  - **`IRpiBlobStorage`** (Application, port nova): `UploadPdfAsync`/`UploadTxtAsync`, recebendo `RpiTipo`/`edicao`/caminho local. **`AzureBlobRpiStorage`** (Infrastructure): usa `Azure.Storage.Blobs` (`BlobServiceClient` singleton, connection string via `BlobStorage__ConnectionString`), sobe o arquivo (`BlobClient.UploadAsync(path, overwrite: true)`) e aplica as 3 tags via `SetTagsAsync` — path e nome de container seguem exatamente a convenção documentada acima.
+  - **`UploadRpiEditionToBlobUseCase`** (Application): mesmo formato dos outros use cases da pipeline — lê `RpiEdition` existente, sobe PDF e TXT (usa `IRpiFileStorage.GetPdfPath`/novo `GetTxtPath`), grava `RpiProcessingAttempt` com stage `UploadBlob`.
+  - **Encadeamento automático** (mesma decisão de fase 5, estendida): `RpiDownloadController` agora encadeia download → conversão → upload na mesma fila, cada etapa só dispara se a anterior teve sucesso. Por isso `ConvertRpiEditionToTxtUseCase.ExecuteAsync` passou a retornar `Task<bool>` (sucesso), no mesmo espírito do `DownloadRpiEditionResult` da fase 5.
+  - **Testado contra o Azure real de ponta a ponta, e um incidente real durante esse teste**: o container `rpi` configurado pelo usuário **já é o container de produção do `kodx-legacy`**, com backups reais de todos os 8 tipos de RPI da edição 2891. O primeiro teste (rpi=`(int)tipo`, ex: `"6"` pra Patentes) sobrescreveu `2891/Patentes2891.pdf`/`.txt` de produção (conteúdo deve ser idêntico — mesmo PDF oficial do INPI — mas a tag `rpi` mudou de formato). Comparando com as tags reais dos outros 7 tipos (todas com o **nome** do tipo, ex: `"Comunicados"`, `"ContratosTecnologia"`), ficou claro que a leitura do código do legado (`rpi.Rpi.ToString()`) tinha levado a uma suposição errada (`RpiTipo` numérico) — em produção o campo é o nome. Corrigido para `tipo.ToString()` (bate exatamente com os nomes do enum `RpiTipo`) e reexecutado o upload de 2891/Patentes pra restaurar a tag correta; confirmado via leitura direta dos blobs/tags após a correção. **Lição**: ao inferir formato de dados a partir só do código-fonte (sem acesso ao banco/storage real), tratar como hipótese a confirmar, não como fato — aqui só foi possível corrigir porque o teste rodou contra a infra real antes do merge.
+  - Config: `BlobStorage:ConnectionString` (env `BlobStorage__ConnectionString`, nunca commitado) e `BlobStorage:ContainerName` (default `"rpi"`), mesmo mecanismo único já estabelecido (`.envrc.example`, `launchSettings.json.example`, `appsettings.json`).
+
 ## Perguntas em aberto
 
 - Há amostras de PDF/TXT de RPI disponíveis para desenvolver e testar a extração de publicações? (o legado dá a estrutura de dados, mas não substitui ter arquivos reais para testar o parsing)
-- A infraestrutura real (Postgres no Linode, Blob Storage no Azure) já está provisionada e com credenciais disponíveis para desenvolvimento/deploy, ou seguimos só com o Postgres local via docker-compose por enquanto?
+- A infraestrutura real do Postgres em produção (Linode) já está provisionada e com credenciais disponíveis para deploy, ou seguimos só com o Postgres local via docker-compose por enquanto? (Blob Storage no Azure já confirmado — ver fase 6 acima)

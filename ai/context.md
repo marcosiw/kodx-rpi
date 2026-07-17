@@ -9,13 +9,13 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 ## Status atual
 
-Fase 3 (schema Postgres) implementada e **validada de ponta a ponta** na branch `feat/postgres-schema`: Docker ficou disponível no WSL após reiniciar a máquina e adicionar o usuário ao grupo `docker` (`sudo usermod -aG docker marcos` + reiniciar a sessão WSL). `docker compose up -d`, `dotnet ef database update` e `dotnet test` rodaram com sucesso contra o Postgres real — migration aplicou (`rpi_editions`, `publications`, `rpi_processing_attempts` criadas) e os 2 testes de integração passaram. Pronto para revisão/PR.
+Fase 3 mergeada em `main` (PR #2, squash). Próximo passo: fase 4 (download de RPIs do site do INPI), em nova branch a partir de `main`.
 
 ## Plano de implementação (por fases, validadas uma a uma)
 
 1. ~~Scaffolding do repositório (docs de IA, git, estrutura de pastas)~~ — **concluído**
 2. ~~Esqueleto da aplicação .NET (camadas DDD, Swagger, auth por API key, logging estruturado, Docker, CI básico)~~ — **concluído** (mergeado em `main` via PR #1)
-3. ~~Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)~~ — **concluído e validado** (branch `feat/postgres-schema`)
+3. ~~Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)~~ — **concluído** (mergeado em `main` via PR #2)
 4. Download de RPIs do site do INPI
 5. Conversão PDF → TXT
 6. Armazenamento no Azure Blob Storage (seguindo estrutura/tags já existentes)

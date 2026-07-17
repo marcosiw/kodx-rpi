@@ -9,14 +9,14 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 ## Status atual
 
-Fase 3 mergeada em `main` (PR #2, squash). Próximo passo: fase 4 (download de RPIs do site do INPI), em nova branch a partir de `main`.
+Fase 4 (download de RPIs do INPI) implementada e **validada de ponta a ponta contra o site real do INPI** na branch `feat/inpi-download`, aguardando revisão/PR.
 
 ## Plano de implementação (por fases, validadas uma a uma)
 
 1. ~~Scaffolding do repositório (docs de IA, git, estrutura de pastas)~~ — **concluído**
 2. ~~Esqueleto da aplicação .NET (camadas DDD, Swagger, auth por API key, logging estruturado, Docker, CI básico)~~ — **concluído** (mergeado em `main` via PR #1)
 3. ~~Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)~~ — **concluído** (mergeado em `main` via PR #2)
-4. Download de RPIs do site do INPI
+4. ~~Download de RPIs do site do INPI~~ — **concluído, em validação** (branch `feat/inpi-download`)
 5. Conversão PDF → TXT
 6. Armazenamento no Azure Blob Storage (seguindo estrutura/tags já existentes)
 7. Extração e persistência das publicações individuais
@@ -54,6 +54,17 @@ Fase 3 mergeada em `main` (PR #2, squash). Próximo passo: fase 4 (download de R
   - Connection string via `ConnectionStrings__Postgres` (env var), seguindo o mesmo mecanismo único já estabelecido (`.envrc`, `launchSettings.json`/`.example`, CI). Valor local de dev: `Host=localhost;Port=5432;Database=kodx_rpi;Username=postgres;Password=postgres` (bate com o `docker-compose.yml`).
   - Migration inicial (`InitialCreate`) gerada, aplicada com `dotnet ef database update` contra o Postgres real do `docker-compose.yml` e confirmada com `\dt` (3 tabelas criadas). Os 2 testes de integração (round-trip do jsonb, tentativa com falha) passam contra esse banco real.
   - Docker precisou de ajuste de permissão no WSL: usuário não estava no grupo `docker` (`sudo usermod -aG docker marcos` + reiniciar a sessão WSL resolveu — `wsl --shutdown` no Windows ou reiniciar a máquina).
+
+- Download de RPIs do INPI (fase 4):
+  - **Não há lógica no legado** para determinar "qual é a edição atual" — construído do zero. Regra: publicação semanal (terças-feiras), calculada a partir de um par âncora configurável (`RpiSchedule:AnchorEdition`/`AnchorPublicationDate` em appsettings, hoje `2891`/`2026-06-02`) em `RpiEditionCalculator` (Domain, puro, usa `TimeProvider` — testável sem mockar relógio de verdade).
+  - **Risco conhecido e documentado no código**: se o INPI pular uma semana (feriado), o cálculo desalinha até o anchor ser corrigido manualmente na config. Passar `edicao` explícita no endpoint sempre contorna isso.
+  - **Endpoint**: `POST /rpis/{tipo}/download/{edicao?}` — se `edicao` vier na rota usa ela; senão calcula via `RpiEditionCalculator`. Enfileira o trabalho e responde `202 Accepted` na hora (execução em **background**, decisão explícita do usuário desde já nesta fase, não só quando encadearmos as próximas).
+  - **Fila de background**: `IBackgroundTaskQueue`/`BackgroundTaskQueue` (`System.Threading.Channels`, padrão oficial "Queued background tasks" do ASP.NET Core) + `QueuedHostedService` (cria um `IServiceScope` novo por job, já que o escopo da request HTTP que enfileirou já terminou quando o job roda). Fila em memória — perde os itens pendentes se o processo reiniciar (aceitável por ora; o histórico de tentativas já concluídas fica no Postgres de qualquer forma).
+  - **`RpiFileNaming`** (Domain): mapeia `RpiTipo` → prefixo de arquivo, reaproveitando exatamente os nomes do legado (`Patentes`, `Marcas`, `Desenhos_Industriais`, `Contratos_de_Tecnologia`, `Indicacoes_Geograficas`, `Comunicados`, `Programas_de_Computador`, e o typo `Topografia_de_circuto_Integrado` — precisa bater com a URL real).
+  - **`InpiRpiDownloader`** (Infrastructure): `HttpClient` nomeado apontando pra `http://revistas.inpi.gov.br/pdf/{arquivo}`, timeout de 300s (`Inpi:HttpTimeoutSeconds`, alto porque roda em background). **Descoberta importante**: o INPI retorna 403 para requests sem `User-Agent` de navegador (WAF bloqueia o UA padrão de HttpClient/curl) — configurado um UA fixo (`Inpi:UserAgent`). O site também redireciona http→https (302), seguido automaticamente pelo `HttpClient` (`AllowAutoRedirect` é `true` por padrão).
+  - **Validação do PDF**: checagem leve (não-vazio + assinatura `%PDF` nos primeiros bytes) — suficiente pra esta fase; extração/parsing real de conteúdo fica pras fases 5/7.
+  - **Armazenamento local temporário**: `LocalDiskRpiFileStorage` grava em `RpiStorage:LocalWorkingDirectory` (default `./data/rpi/{edicao}/{arquivo}`, gitignored) — o upload pro Azure Blob Storage é a fase 6; as fases seguintes vão ler desse mesmo diretório.
+  - **Testado contra o INPI real** (não só mock): edição âncora 2891/Patentes baixada com sucesso (PDF de 3.162.451 bytes, `Last-Modified` bate com a data âncora) e edição calculada automaticamente 2897/Marcas (16/07/2026, 6 semanas após o anchor — cálculo bateu certo), ambas gravando `rpi_processing_attempts` com status `Success` e o arquivo salvo localmente.
 
 ## Perguntas em aberto
 

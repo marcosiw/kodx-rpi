@@ -9,11 +9,7 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 ## Status atual
 
-Fase 5 (conversão PDF → TXT) implementada, testada de ponta a ponta contra o INPI real e com push feito na branch `feat/pdf-to-txt`. **Sessão pausada aqui** — o usuário ainda vai abrir o PR manualmente no GitHub (já tem a descrição pronta) e mergear quando revisar. Ao retomar numa nova sessão:
-1. Perguntar se o PR da fase 5 já foi mergeado.
-2. Se sim: sincronizar `main` (`git pull`), atualizar este arquivo (fase 5 concluída) e criar branch nova pra fase 6 (Armazenamento no Azure Blob Storage) a partir de `main` — seguindo o mesmo fluxo das fases anteriores (branch própria, squash merge).
-3. Se não: continuar na branch `feat/pdf-to-txt` ou aguardar revisão, conforme o usuário indicar.
-4. Antes de codar a fase 6, checar as perguntas em aberto abaixo (infra real do Blob Storage) e a convenção do legado já registrada logo abaixo, em "Convenção de Blob Storage do legado (levantada na fase 3, ainda não implementada)".
+Fase 5 (conversão PDF → TXT) concluída — PR #4 mergeado (squash) em `main`. Iniciando fase 6 (Armazenamento no Azure Blob Storage). Antes de codar, checar a pergunta em aberto sobre infra real do Blob Storage (abaixo) e a convenção do legado já registrada logo abaixo, em "Convenção de Blob Storage do legado (levantada na fase 3, ainda não implementada)".
 
 ## Convenção de Blob Storage do legado (levantada na fase 3, ainda não implementada)
 
@@ -31,7 +27,7 @@ Descoberta durante a exploração do `kodx-legacy` (fase 3) mas só usada até a
 2. ~~Esqueleto da aplicação .NET (camadas DDD, Swagger, auth por API key, logging estruturado, Docker, CI básico)~~ — **concluído** (mergeado em `main` via PR #1)
 3. ~~Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)~~ — **concluído** (mergeado em `main` via PR #2)
 4. ~~Download de RPIs do site do INPI~~ — **concluído** (mergeado em `main` via PR #3)
-5. ~~Conversão PDF → TXT~~ — **concluído** (branch `feat/pdf-to-txt`)
+5. ~~Conversão PDF → TXT~~ — **concluído** (mergeado em `main` via PR #4)
 6. Armazenamento no Azure Blob Storage (seguindo estrutura/tags já existentes)
 7. Extração e persistência das publicações individuais
 8. Endpoints privados para o Kodx API (consulta de RPI, download de PDF, busca de publicações por edição)

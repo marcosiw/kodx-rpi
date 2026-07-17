@@ -49,6 +49,8 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddOptions<InpiOptions>().Bind(builder.Configuration.GetSection(InpiOptions.SectionName));
 builder.Services.AddOptions<RpiStorageOptions>().Bind(builder.Configuration.GetSection(RpiStorageOptions.SectionName));
 builder.Services.AddScoped<IRpiFileStorage, LocalDiskRpiFileStorage>();
+builder.Services.AddScoped<IPdfTextExtractor, PdfPigTextExtractor>();
+builder.Services.AddScoped<ConvertRpiEditionToTxtUseCase>();
 
 builder.Services.AddHttpClient<IRpiDownloader, InpiRpiDownloader>((sp, client) =>
 {

@@ -9,15 +9,29 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 ## Status atual
 
-Fase 4 (download de RPIs do INPI) implementada e **validada de ponta a ponta contra o site real do INPI** na branch `feat/inpi-download`, aguardando revisão/PR.
+Fase 5 (conversão PDF → TXT) implementada, testada de ponta a ponta contra o INPI real e com push feito na branch `feat/pdf-to-txt`. **Sessão pausada aqui** — o usuário ainda vai abrir o PR manualmente no GitHub (já tem a descrição pronta) e mergear quando revisar. Ao retomar numa nova sessão:
+1. Perguntar se o PR da fase 5 já foi mergeado.
+2. Se sim: sincronizar `main` (`git pull`), atualizar este arquivo (fase 5 concluída) e criar branch nova pra fase 6 (Armazenamento no Azure Blob Storage) a partir de `main` — seguindo o mesmo fluxo das fases anteriores (branch própria, squash merge).
+3. Se não: continuar na branch `feat/pdf-to-txt` ou aguardar revisão, conforme o usuário indicar.
+4. Antes de codar a fase 6, checar as perguntas em aberto abaixo (infra real do Blob Storage) e a convenção do legado já registrada logo abaixo, em "Convenção de Blob Storage do legado (levantada na fase 3, ainda não implementada)".
+
+## Convenção de Blob Storage do legado (levantada na fase 3, ainda não implementada)
+
+Descoberta durante a exploração do `kodx-legacy` (fase 3) mas só usada até agora pra decidir o `RpiFileNaming` — o resto ainda não foi implementado, registrando aqui pra não perder até a fase 6:
+
+- **Container Azure**: `rpi`
+- **Path do blob** (relativo ao container): `{edicao}/{nomeArquivo}` — ex: `2501/Patentes2501.pdf`, `2501/Patentes2501.txt` (mesmo nome de arquivo usado localmente, via `RpiFileNaming`)
+- **Tags aplicadas em cada blob**: `edicao` (ex: `"2501"`), `rpi` (tipo numérico do `RpiTipo`, ex: `"6"` pra Patentes), `extensao` (`"pdf"` ou `"txt"`)
+- **Arquivo de referência no legado**: `/mnt/e/projects/kodx-legacy/src/4.Dominio/Servicos/BackupRpiServico.cs` — métodos `ArquivarPdfs()`, `ArquivarTxts()`, `ObterTags()`; a classe que fala com o Azure é `Kodx.Producao.Infra.Azure/StorageBlob.cs`
+- A spec pede explicitamente seguir "o formato já existente de segregação e tags", então a fase 6 deve reproduzir isso (container `rpi`, mesmo path/tags), não inventar uma estrutura nova.
 
 ## Plano de implementação (por fases, validadas uma a uma)
 
 1. ~~Scaffolding do repositório (docs de IA, git, estrutura de pastas)~~ — **concluído**
 2. ~~Esqueleto da aplicação .NET (camadas DDD, Swagger, auth por API key, logging estruturado, Docker, CI básico)~~ — **concluído** (mergeado em `main` via PR #1)
 3. ~~Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)~~ — **concluído** (mergeado em `main` via PR #2)
-4. ~~Download de RPIs do site do INPI~~ — **concluído, em validação** (branch `feat/inpi-download`)
-5. Conversão PDF → TXT — **reaproveitar a lógica já construída em `/mnt/e/projects/kodx-pdf`** (decisão do usuário, não construir do zero). Esse repositório já tem: solução `Kodx.Pdf.sln` com `Kodx.Pdf` (lib, .NET 10, usa `UglyToad.PdfPig` 1.7.0-custom-5), `Kodx.Pdf.Runner` (executável de teste manual) e `Kodx.Pdf.Tests`. A classe principal é `PdfTextExtractor` (namespace `Kodx.Producao.Spike.PdfPig`) — método de entrada `ExtractOrdered(string pdfPath, double minLineTolerance = 2.0)`, que já resolve ordenação de colunas/linhas (problema clássico de extração de texto de PDF), com utilitários de mais baixo nível (`CollectBlocks`, `GroupIntoLines`, `ConcatenateBlocks`) caso precisemos de controle mais fino. Bate com o que o `TASKS.md` do `kodx-legacy` já cogitava (`PdfPig` como substituto do `LeitorAcrobat`/COM Interop). **Lembrete do usuário**: aproveitar essa mesma lib pra também validar a integridade do PDF (além da checagem leve de assinatura `%PDF` já feita na fase 4) — ex: conseguir abrir/parsear sem exceção, contar páginas, etc. Ainda não decidido: se `Kodx.Pdf` vira uma dependência de pacote/projeto referenciado, ou se o código é portado pra dentro do `Kodx.Rpi.Infrastructure` — avaliar quando chegarmos nessa fase.
+4. ~~Download de RPIs do site do INPI~~ — **concluído** (mergeado em `main` via PR #3)
+5. ~~Conversão PDF → TXT~~ — **concluído** (branch `feat/pdf-to-txt`)
 6. Armazenamento no Azure Blob Storage (seguindo estrutura/tags já existentes)
 7. Extração e persistência das publicações individuais
 8. Endpoints privados para o Kodx API (consulta de RPI, download de PDF, busca de publicações por edição)
@@ -64,6 +78,13 @@ Fase 4 (download de RPIs do INPI) implementada e **validada de ponta a ponta con
   - **Validação do PDF**: checagem leve (não-vazio + assinatura `%PDF` nos primeiros bytes) — suficiente pra esta fase; extração/parsing real de conteúdo fica pras fases 5/7.
   - **Armazenamento local temporário**: `LocalDiskRpiFileStorage` grava em `RpiStorage:LocalWorkingDirectory` — default `../../data/rpi/{edicao}/{arquivo}` **relativo ao content root da Api** (`src/Kodx.Rpi.Api`), o que cai em `data/` na raiz do repositório (não dentro de `src/`), gitignored (`/data/`). Path relativo resolvido contra o `Environment.CurrentDirectory` do processo, que coincide com o content root ao rodar via `dotnet run`/IDE a partir da pasta do projeto — em Docker (fase 6) essa config precisará de um valor absoluto próprio (volume montado), já que não existe hierarquia `src/`/raiz do repo dentro do container. O upload pro Azure Blob Storage é a fase 6; as fases seguintes vão ler desse mesmo diretório.
   - **Testado contra o INPI real** (não só mock): edição âncora 2891/Patentes, edição calculada automaticamente via calendário 2897/Marcas e 2897/`ProgramasComputador` (confirmando a correção do nome do arquivo) baixaram com sucesso, gravando `rpi_processing_attempts` com status `Success` e o arquivo salvo localmente. Uma tentativa de `ProgramasComputador` falhou por instabilidade de rede transitória (`HttpRequestException` ao ler o corpo da resposta) e foi corretamente registrada como `Failure`, sem derrubar a aplicação — repetir a chamada teve sucesso.
+
+- Conversão PDF → TXT (fase 5):
+  - **Código do `kodx-pdf` portado (copiado), não referenciado cross-repo** — decisão explícita do usuário. `PdfTextExtractor`/`TextBlock`/`LineGroup` (namespace `Kodx.Rpi.Infrastructure.Pdf`) vieram de `git@github.com:marcosiw/kodx-pdf.git`, com comentário de atribuição no topo do arquivo. Pacote `UglyToad.PdfPig` 1.7.0-custom-5 (confirmado disponível direto no nuget.org, apesar do nome "custom" sugerir build própria).
+  - **`ConvertRpiEditionToTxtUseCase`** (Application): lê o PDF local (`IRpiFileStorage.GetPdfPath`), extrai via `IPdfTextExtractor` (portas novas), salva o `.txt` (`IRpiFileStorage.SaveTxtAsync`, usando `RpiFileNaming.TxtFileName`) e grava `RpiProcessingAttempt` com stage `ConvertToTxt`. **Validação de integridade do PDF** (lembrete do usuário): não é um passo separado — o `PdfDocument.Open` do PdfPig (chamado dentro de `ExtractOrdered`) já lança se o arquivo estiver corrompido/ilegível, e isso vira `Failure` como qualquer outra exceção da pipeline. Texto extraído vazio/só espaços também é tratado como falha.
+  - **Encadeamento automático** (decisão explícita do usuário): a orquestração "download bem-sucedido → enfileirar conversão" fica no `RpiDownloadController` (não dentro do `DownloadRpiEditionUseCase`, que continua sem saber de fila/background — isso ficaria vazando uma preocupação de Infrastructure/hosting pra dentro da Application). Por isso `DownloadRpiEditionUseCase.ExecuteAsync` passou a retornar `DownloadRpiEditionResult(bool Success, int Edicao)` em vez de `Task` simples — o controller usa esse resultado pra decidir se enfileira `ConvertRpiEditionToTxtUseCase` na mesma fila, já com a edição resolvida (importante quando `edicao` não veio na rota).
+  - **Testes portados do `kodx-pdf`**: os testes de unidade de `PdfTextExtractor` (agrupamento de linhas, concatenação de blocos etc.) vieram junto com o código, sem depender de PDFs de amostra (usam `TextBlock`s sintéticos).
+  - **Testado contra o INPI real de ponta a ponta**: baixou a edição 2891/Patentes, encadeou a conversão automaticamente, e o texto extraído do PDF real (3.162.451 bytes) bateu exatamente com o cabeçalho oficial da RPI ("Revista da Propriedade Industrial", "Nº 2891", data, nomes de autoridades), sem garble — confirma que a lógica portada do `kodx-pdf` funciona igual fora do repositório original.
 
 ## Perguntas em aberto
 

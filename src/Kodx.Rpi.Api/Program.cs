@@ -1,5 +1,10 @@
 using Kodx.Rpi.Api.Security;
+using Kodx.Rpi.Application;
+using Kodx.Rpi.Application.Rpis;
+using Kodx.Rpi.Domain.Rpis;
+using Kodx.Rpi.Infrastructure.BackgroundProcessing;
 using Kodx.Rpi.Infrastructure.Persistence;
+using Kodx.Rpi.Infrastructure.Rpis;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Formatting.Compact;
@@ -33,6 +38,44 @@ builder.Services.AddOptions<ApiKeyOptions>()
 builder.Services.AddDbContext<KodxRpiDbContext>(options => options
     .UseNpgsql(builder.Configuration.GetConnectionString("Postgres"))
     .UseSnakeCaseNamingConvention());
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IRpiEditionRepository, RpiEditionRepository>();
+builder.Services.AddScoped<IRpiProcessingAttemptRepository, RpiProcessingAttemptRepository>();
+builder.Services.AddScoped<DownloadRpiEditionUseCase>();
+
+builder.Services.AddSingleton(TimeProvider.System);
+
+builder.Services.AddOptions<InpiOptions>().Bind(builder.Configuration.GetSection(InpiOptions.SectionName));
+builder.Services.AddOptions<RpiStorageOptions>().Bind(builder.Configuration.GetSection(RpiStorageOptions.SectionName));
+builder.Services.AddScoped<IRpiFileStorage, LocalDiskRpiFileStorage>();
+
+builder.Services.AddHttpClient<IRpiDownloader, InpiRpiDownloader>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<InpiOptions>>().Value;
+    client.BaseAddress = new Uri(options.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(options.HttpTimeoutSeconds);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(options.UserAgent);
+});
+
+builder.Services.AddHttpClient<IRpiCalendar, InpiRpiCalendar>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<InpiOptions>>().Value;
+    client.BaseAddress = new Uri(options.CalendarUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(options.UserAgent);
+});
+
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var anchorEdition = config.GetValue<int>("RpiSchedule:AnchorEdition");
+    var anchorPublicationDate = config.GetValue<DateOnly>("RpiSchedule:AnchorPublicationDate");
+    return new RpiEditionCalculator(sp.GetRequiredService<TimeProvider>(), anchorEdition, anchorPublicationDate);
+});
+
+builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+builder.Services.AddHostedService<QueuedHostedService>();
 
 builder.Services.AddRequestTimeouts(options =>
 {

@@ -9,7 +9,21 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 ## Status atual
 
-Fase 4 mergeada em `main` (PR #3, squash). Próximo passo: fase 5 (conversão PDF → TXT), em nova branch a partir de `main`.
+Fase 5 (conversão PDF → TXT) implementada, testada de ponta a ponta contra o INPI real e com push feito na branch `feat/pdf-to-txt`. **Sessão pausada aqui** — o usuário ainda vai abrir o PR manualmente no GitHub (já tem a descrição pronta) e mergear quando revisar. Ao retomar numa nova sessão:
+1. Perguntar se o PR da fase 5 já foi mergeado.
+2. Se sim: sincronizar `main` (`git pull`), atualizar este arquivo (fase 5 concluída) e criar branch nova pra fase 6 (Armazenamento no Azure Blob Storage) a partir de `main` — seguindo o mesmo fluxo das fases anteriores (branch própria, squash merge).
+3. Se não: continuar na branch `feat/pdf-to-txt` ou aguardar revisão, conforme o usuário indicar.
+4. Antes de codar a fase 6, checar as perguntas em aberto abaixo (infra real do Blob Storage) e a convenção do legado já registrada logo abaixo, em "Convenção de Blob Storage do legado (levantada na fase 3, ainda não implementada)".
+
+## Convenção de Blob Storage do legado (levantada na fase 3, ainda não implementada)
+
+Descoberta durante a exploração do `kodx-legacy` (fase 3) mas só usada até agora pra decidir o `RpiFileNaming` — o resto ainda não foi implementado, registrando aqui pra não perder até a fase 6:
+
+- **Container Azure**: `rpi`
+- **Path do blob** (relativo ao container): `{edicao}/{nomeArquivo}` — ex: `2501/Patentes2501.pdf`, `2501/Patentes2501.txt` (mesmo nome de arquivo usado localmente, via `RpiFileNaming`)
+- **Tags aplicadas em cada blob**: `edicao` (ex: `"2501"`), `rpi` (tipo numérico do `RpiTipo`, ex: `"6"` pra Patentes), `extensao` (`"pdf"` ou `"txt"`)
+- **Arquivo de referência no legado**: `/mnt/e/projects/kodx-legacy/src/4.Dominio/Servicos/BackupRpiServico.cs` — métodos `ArquivarPdfs()`, `ArquivarTxts()`, `ObterTags()`; a classe que fala com o Azure é `Kodx.Producao.Infra.Azure/StorageBlob.cs`
+- A spec pede explicitamente seguir "o formato já existente de segregação e tags", então a fase 6 deve reproduzir isso (container `rpi`, mesmo path/tags), não inventar uma estrutura nova.
 
 ## Plano de implementação (por fases, validadas uma a uma)
 

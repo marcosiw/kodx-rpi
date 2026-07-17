@@ -12,7 +12,7 @@ out/
 coverage*/
 
 # Diretório de trabalho local (PDFs baixados de RPIs, antes de subir pro Blob Storage)
-src/Kodx.Rpi.Api/data/
+/data/
 
 # direnv (segredos locais)
 .envrc

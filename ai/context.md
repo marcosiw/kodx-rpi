@@ -9,20 +9,13 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 ## Status atual
 
-Fase 3 (schema Postgres) implementada na branch `feat/postgres-schema`, aguardando validação — **não testada de ponta a ponta contra um Postgres real ainda** (ver nota em Decisões tomadas).
-
-**Próxima ação pendente**: o usuário vai reiniciar a máquina para ver se o Docker fica disponível no WSL (neste sandbox, `docker` não é encontrado — integração WSL do Docker Desktop parece desabilitada, e não há `sudo` para instalar Postgres nativo como alternativa). Assim que Docker estiver disponível, rodar para validar a fase 3:
-```
-docker compose up -d
-dotnet test
-```
-Se os testes em `Kodx.Rpi.Infrastructure.Tests/Persistence/KodxRpiDbContextTests.cs` passarem (migration aplica, round-trip do jsonb funciona), a fase 3 pode ser considerada concluída e seguir para PR/merge.
+Fase 3 (schema Postgres) implementada e **validada de ponta a ponta** na branch `feat/postgres-schema`: Docker ficou disponível no WSL após reiniciar a máquina e adicionar o usuário ao grupo `docker` (`sudo usermod -aG docker marcos` + reiniciar a sessão WSL). `docker compose up -d`, `dotnet ef database update` e `dotnet test` rodaram com sucesso contra o Postgres real — migration aplicou (`rpi_editions`, `publications`, `rpi_processing_attempts` criadas) e os 2 testes de integração passaram. Pronto para revisão/PR.
 
 ## Plano de implementação (por fases, validadas uma a uma)
 
 1. ~~Scaffolding do repositório (docs de IA, git, estrutura de pastas)~~ — **concluído**
 2. ~~Esqueleto da aplicação .NET (camadas DDD, Swagger, auth por API key, logging estruturado, Docker, CI básico)~~ — **concluído** (mergeado em `main` via PR #1)
-3. Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB) — **implementado, em validação** (branch `feat/postgres-schema`)
+3. ~~Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)~~ — **concluído e validado** (branch `feat/postgres-schema`)
 4. Download de RPIs do site do INPI
 5. Conversão PDF → TXT
 6. Armazenamento no Azure Blob Storage (seguindo estrutura/tags já existentes)
@@ -59,7 +52,8 @@ Se os testes em `Kodx.Rpi.Infrastructure.Tests/Persistence/KodxRpiDbContextTests
   - **Postgres local/testes**: só `docker-compose.yml` (Postgres 16, container `kodx-rpi-db`), **sem Testcontainers** — decisão explícita do usuário. Testes de integração em `Kodx.Rpi.Infrastructure.Tests/Persistence/KodxRpiDbContextTests.cs` assumem esse Postgres rodando (`docker compose up -d`) e aplicam `Database.MigrateAsync()` no `InitializeAsync`.
   - CI: o job `test` ganhou um Postgres 16 como *service container* do GitHub Actions (não é Testcontainers, é o mecanismo nativo de `services:` do Actions) para os testes de integração rodarem no pipeline.
   - Connection string via `ConnectionStrings__Postgres` (env var), seguindo o mesmo mecanismo único já estabelecido (`.envrc`, `launchSettings.json`/`.example`, CI). Valor local de dev: `Host=localhost;Port=5432;Database=kodx_rpi;Username=postgres;Password=postgres` (bate com o `docker-compose.yml`).
-  - Migration inicial (`InitialCreate`) gerada e o SQL foi conferido manualmente (`dotnet ef migrations script`) — sintaxe válida, `jsonb` e FKs corretos. **Atenção**: não foi possível rodar `dotnet ef database update` nem os testes de integração contra um Postgres real neste ambiente (sandbox sem Docker/sem Postgres instalado, sem sudo p/ instalar) — falta validar isso de fato rodando `docker compose up -d` seguido de `dotnet test` localmente antes de considerar a fase realmente fechada.
+  - Migration inicial (`InitialCreate`) gerada, aplicada com `dotnet ef database update` contra o Postgres real do `docker-compose.yml` e confirmada com `\dt` (3 tabelas criadas). Os 2 testes de integração (round-trip do jsonb, tentativa com falha) passam contra esse banco real.
+  - Docker precisou de ajuste de permissão no WSL: usuário não estava no grupo `docker` (`sudo usermod -aG docker marcos` + reiniciar a sessão WSL resolveu — `wsl --shutdown` no Windows ou reiniciar a máquina).
 
 ## Perguntas em aberto
 

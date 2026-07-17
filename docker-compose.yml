@@ -1,4 +1,3 @@
-version: "3"
 services:
   kodx-rpi-db:
     image: postgres:16

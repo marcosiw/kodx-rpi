@@ -9,13 +9,13 @@ Antes de iniciar qualquer trabalho nesta base, leia este arquivo. Ao tomar decis
 
 ## Status atual
 
-Fase 2 implementada na branch `feat/app-skeleton`, aguardando validação para merge (squash) em `main`. Próximo passo após validação: fase 3 (modelagem do banco Postgres).
+Fase 3 (schema Postgres) implementada e **validada de ponta a ponta** na branch `feat/postgres-schema`: Docker ficou disponível no WSL após reiniciar a máquina e adicionar o usuário ao grupo `docker` (`sudo usermod -aG docker marcos` + reiniciar a sessão WSL). `docker compose up -d`, `dotnet ef database update` e `dotnet test` rodaram com sucesso contra o Postgres real — migration aplicou (`rpi_editions`, `publications`, `rpi_processing_attempts` criadas) e os 2 testes de integração passaram. Pronto para revisão/PR.
 
 ## Plano de implementação (por fases, validadas uma a uma)
 
 1. ~~Scaffolding do repositório (docs de IA, git, estrutura de pastas)~~ — **concluído**
-2. ~~Esqueleto da aplicação .NET (camadas DDD, Swagger, auth por API key, logging estruturado, Docker, CI básico)~~ — **implementado, em validação** (branch `feat/app-skeleton`)
-3. Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)
+2. ~~Esqueleto da aplicação .NET (camadas DDD, Swagger, auth por API key, logging estruturado, Docker, CI básico)~~ — **concluído** (mergeado em `main` via PR #1)
+3. ~~Modelagem e migrations do banco Postgres (histórico de downloads/transformações, publicações em JSONB)~~ — **concluído e validado** (branch `feat/postgres-schema`)
 4. Download de RPIs do site do INPI
 5. Conversão PDF → TXT
 6. Armazenamento no Azure Blob Storage (seguindo estrutura/tags já existentes)
@@ -29,7 +29,7 @@ Fase 2 implementada na branch `feat/app-skeleton`, aguardando validação para m
 - Repositório GitHub: `git@github.com:marcosiw/kodx-rpi.git` (branch padrão `main`).
 - Docs para IA ficam em `ai/`, com `ai/context.md` cumprindo o papel de guia principal (equivalente a um CLAUDE.md).
 - `specs/` é versionado junto ao código (fonte de verdade da especificação).
-- Fluxo de branches: cada fase do plano é implementada em uma branch própria a partir de `main`; ao finalizar, o merge em `main` é feito via **squash** (histórico enxuto na main, detalhado preservado na branch de origem).
+- Fluxo de branches: cada fase do plano é implementada em uma branch própria a partir de `main`; ao finalizar, o merge em `main` é feito via **squash** (histórico enxuto na main, detalhado preservado na branch de origem). O PR #1 (fase 2) saiu como merge commit normal por engano; o usuário restringiu o repositório no GitHub (Settings > Pull Requests) para permitir só squash merge dali em diante.
 - Esqueleto da aplicação (.NET 10, target `net10.0`):
   - Solução `Kodx.Rpi.slnx` na raiz; projetos de camada em `src/` (`Kodx.Rpi.Domain`, `Kodx.Rpi.Application`, `Kodx.Rpi.Infrastructure`, `Kodx.Rpi.Api`), testes em `tests/` (`Kodx.Rpi.Application.Tests`, `Kodx.Rpi.Infrastructure.Tests`, xUnit). Referências seguem DDD: Domain ← Application ← Infrastructure/Api.
   - Logging estruturado com Serilog + `UseSerilogRequestLogging()` para log de entrada/saída de requests. Console usa formato diferente por ambiente: em `Development`, template padrão do Serilog (texto já renderizado, legível no terminal); fora de `Development`, `CompactJsonFormatter` (JSON/CLEF, pensado para agregação de logs). No CLEF, `@mt` guarda o template bruto (não substituído) por design — os valores reais vêm como campos próprios no JSON (`RequestMethod`, `StatusCode` etc.) e `@r` traz o valor já formatado só para tokens com format specifier (ex: `{Elapsed:0.0000}`); não é um bug, é assim que ferramentas de agregação (Seq etc.) esperam consumir.
@@ -43,9 +43,19 @@ Fase 2 implementada na branch `feat/app-skeleton`, aguardando validação para m
   - Config local na IDE (Visual Studio/Rider): **um único mecanismo de config (variáveis de ambiente)** em todos os contextos — shell (`.envrc`/direnv), Docker/produção (env do orquestrador) e IDE. Para a IDE, que não herda o shell do direnv ao ser aberta direto (ex: ícone do Windows), usamos `src/Kodx.Rpi.Api/Properties/launchSettings.json`, que o Visual Studio/Rider já leem nativamente para variáveis de ambiente ao rodar o profile — **esse arquivo saiu do git** (contém valores locais como `ApiKey__Value`) e um `launchSettings.json.example` (com valores vazios) é o template versionado, no mesmo padrão do `.envrc.example`.
     - Avaliamos e descartamos `dotnet user-secrets`: ele só carrega em `Development` a partir de um arquivo fora do repo (`~/.microsoft/usersecrets/<GUID>/secrets.json`), nunca é publicado/empacotado e **não existe dentro de containers Docker** — seria uma segunda fonte de verdade desconectada de Docker/produção, o que o usuário preferiu evitar.
 
+- Schema Postgres (fase 3, EF Core 10 + Npgsql, `EFCore.NamingConventions` para snake_case):
+  - **Referência**: existe um repositório legado (`/mnt/e/projects/kodx-legacy`, `Kodx.Producao`, .NET/EF Core 6) que já roda em produção. Ele **não persiste** a RPI em si (entidade `Rpi` é só em memória) nem tem histórico de tentativas de download/conversão — esse é o gap que a fase 3 preenche. A tabela `publicacoes_pi` do legado guarda publicações em colunas de texto flat (`cabecalho1-3`, `conteudo`, `numero`, `pagina`, `index_inicio/fim`, `rodape`, `orgao`), ligadas à RPI só por `caderno_id` (tipo) + `edicao`, sem FK real.
+  - **`RpiTipo`** (`Kodx.Rpi.Domain/Rpis/RpiTipo.cs`): reaproveita exatamente os valores do enum do legado (`Comunicados=1 ... TopografiaCircuitos=8`).
+  - **`rpi_editions`**: nova tabela (o legado nunca persistiu isso) — `id`, `edicao`, `tipo`, `data_publicacao`, `created_at`; índice único em `(edicao, tipo)`.
+  - **`rpi_processing_attempts`**: nova tabela cobrindo o gap de auditoria — `id`, `rpi_edition_id` (FK), `stage` (enum `ProcessingStage`: `Download`, `ConvertToTxt`, `ExtractPublications`, `UploadBlob` — 4 etapas independentes, cada uma com sua própria tentativa/status), `status` (`Success`/`Failure`), `error_message`, `started_at`, `finished_at`.
+  - **`publications`**: `id`, `rpi_edition_id` (FK), `numero` (coluna real, indexada — decisão explícita do usuário, mesmo a spec sugerindo que filtragem fina ficaria por conta de outros serviços), `payload` (jsonb, via `OwnsOne(...).ToJson()` do EF Core/Npgsql — contém `Cabecalho1-3`, `Conteudo`, `TodosNumeros`, `IndexInicio/Fim`, `Rodape`, `Pagina`, `Orgao`, equivalente ao conteúdo das colunas flat do legado, sem duplicar `Numero`), `created_at`.
+  - **Postgres local/testes**: só `docker-compose.yml` (Postgres 16, container `kodx-rpi-db`), **sem Testcontainers** — decisão explícita do usuário. Testes de integração em `Kodx.Rpi.Infrastructure.Tests/Persistence/KodxRpiDbContextTests.cs` assumem esse Postgres rodando (`docker compose up -d`) e aplicam `Database.MigrateAsync()` no `InitializeAsync`.
+  - CI: o job `test` ganhou um Postgres 16 como *service container* do GitHub Actions (não é Testcontainers, é o mecanismo nativo de `services:` do Actions) para os testes de integração rodarem no pipeline.
+  - Connection string via `ConnectionStrings__Postgres` (env var), seguindo o mesmo mecanismo único já estabelecido (`.envrc`, `launchSettings.json`/`.example`, CI). Valor local de dev: `Host=localhost;Port=5432;Database=kodx_rpi;Username=postgres;Password=postgres` (bate com o `docker-compose.yml`).
+  - Migration inicial (`InitialCreate`) gerada, aplicada com `dotnet ef database update` contra o Postgres real do `docker-compose.yml` e confirmada com `\dt` (3 tabelas criadas). Os 2 testes de integração (round-trip do jsonb, tentativa com falha) passam contra esse banco real.
+  - Docker precisou de ajuste de permissão no WSL: usuário não estava no grupo `docker` (`sudo usermod -aG docker marcos` + reiniciar a sessão WSL resolveu — `wsl --shutdown` no Windows ou reiniciar a máquina).
+
 ## Perguntas em aberto
 
-- Existe outro repositório/serviço Kodx já em produção com convenções de Blob Storage (estrutura de pastas/tags) ou parsing de publicações que devemos seguir/portar?
-- Há amostras de PDF/TXT de RPI disponíveis para desenvolver e testar a extração de publicações?
-- A infraestrutura (Postgres no Linode, Blob Storage no Azure) já está provisionada e com credenciais disponíveis para desenvolvimento, ou precisamos de mocks/containers locais por enquanto?
-- Alguma preferência de stack de testes/ferramentas .NET (ex: xUnit + Testcontainers como default), ou usar outra?
+- Há amostras de PDF/TXT de RPI disponíveis para desenvolver e testar a extração de publicações? (o legado dá a estrutura de dados, mas não substitui ter arquivos reais para testar o parsing)
+- A infraestrutura real (Postgres no Linode, Blob Storage no Azure) já está provisionada e com credenciais disponíveis para desenvolvimento/deploy, ou seguimos só com o Postgres local via docker-compose por enquanto?

@@ -1,4 +1,6 @@
 using Kodx.Rpi.Api.Security;
+using Kodx.Rpi.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Formatting.Compact;
 
@@ -27,6 +29,10 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddOptions<ApiKeyOptions>()
     .Bind(builder.Configuration.GetSection(ApiKeyOptions.SectionName));
+
+builder.Services.AddDbContext<KodxRpiDbContext>(options => options
+    .UseNpgsql(builder.Configuration.GetConnectionString("Postgres"))
+    .UseSnakeCaseNamingConvention());
 
 builder.Services.AddRequestTimeouts(options =>
 {

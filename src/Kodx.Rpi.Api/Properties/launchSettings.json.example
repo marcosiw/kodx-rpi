@@ -8,7 +8,8 @@
       "applicationUrl": "http://localhost:5181",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ApiKey__Value": ""
+        "ApiKey__Value": "",
+        "ConnectionStrings__Postgres": ""
       }
     },
     "https": {
@@ -18,7 +19,8 @@
       "applicationUrl": "https://localhost:7024;http://localhost:5181",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ApiKey__Value": ""
+        "ApiKey__Value": "",
+        "ConnectionStrings__Postgres": ""
       }
     }
   }

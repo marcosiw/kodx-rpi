@@ -11,15 +11,22 @@ public sealed class RpiDownloadController(IBackgroundTaskQueue taskQueue) : Cont
 {
     /// <summary>
     /// Aciona o download em background de uma edição da RPI. Se <paramref name="edicao"/> não
-    /// for informada, calcula a edição corrente a partir do anchor configurado.
+    /// for informada, resolve a edição mais recente pelo calendário oficial do INPI. Em caso
+    /// de sucesso, encadeia automaticamente a conversão para TXT na mesma fila.
     /// </summary>
     [HttpPost("{tipo}/download/{edicao?}")]
     public IActionResult Download(RpiTipo tipo, int? edicao)
     {
         taskQueue.Enqueue(async (services, cancellationToken) =>
         {
-            var useCase = services.GetRequiredService<DownloadRpiEditionUseCase>();
-            await useCase.ExecuteAsync(tipo, edicao, cancellationToken);
+            var downloadUseCase = services.GetRequiredService<DownloadRpiEditionUseCase>();
+            var result = await downloadUseCase.ExecuteAsync(tipo, edicao, cancellationToken);
+
+            if (result.Success)
+            {
+                var convertUseCase = services.GetRequiredService<ConvertRpiEditionToTxtUseCase>();
+                await convertUseCase.ExecuteAsync(tipo, result.Edicao, cancellationToken);
+            }
         });
 
         return Accepted(new { tipo, edicao });

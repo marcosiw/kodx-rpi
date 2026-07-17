@@ -12,7 +12,7 @@ public sealed class DownloadRpiEditionUseCase(
     RpiEditionCalculator editionCalculator,
     TimeProvider timeProvider)
 {
-    public async Task ExecuteAsync(RpiTipo tipo, int? edicao, CancellationToken cancellationToken)
+    public async Task<DownloadRpiEditionResult> ExecuteAsync(RpiTipo tipo, int? edicao, CancellationToken cancellationToken)
     {
         int resolvedEdicao;
         DateOnly? knownPublicationDate;
@@ -46,6 +46,7 @@ public sealed class DownloadRpiEditionUseCase(
         }
 
         var startedAt = timeProvider.GetUtcNow();
+        bool succeeded;
 
         try
         {
@@ -55,6 +56,7 @@ public sealed class DownloadRpiEditionUseCase(
 
             var attempt = RpiProcessingAttempt.Success(edition.Id, ProcessingStage.Download, startedAt, timeProvider.GetUtcNow());
             await attemptRepository.AddAsync(attempt, cancellationToken);
+            succeeded = true;
         }
         catch (Exception ex)
         {
@@ -62,9 +64,12 @@ public sealed class DownloadRpiEditionUseCase(
             // nunca uma exceção não tratada — é exatamente o histórico que a spec pede.
             var attempt = RpiProcessingAttempt.Failure(edition.Id, ProcessingStage.Download, ex.Message, startedAt, timeProvider.GetUtcNow());
             await attemptRepository.AddAsync(attempt, cancellationToken);
+            succeeded = false;
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new DownloadRpiEditionResult(succeeded, resolvedEdicao);
     }
 
     private static void ValidatePdf(byte[] content)

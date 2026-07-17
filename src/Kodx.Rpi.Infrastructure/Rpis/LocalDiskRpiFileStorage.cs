@@ -8,10 +8,22 @@ public sealed class LocalDiskRpiFileStorage(IOptions<RpiStorageOptions> options)
 {
     public async Task SavePdfAsync(RpiTipo tipo, int edicao, byte[] content, CancellationToken cancellationToken)
     {
-        var directory = Path.Combine(options.Value.LocalWorkingDirectory, edicao.ToString());
-        Directory.CreateDirectory(directory);
-
-        var path = Path.Combine(directory, RpiFileNaming.PdfFileName(tipo, edicao));
+        var path = GetPdfPath(tipo, edicao);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         await File.WriteAllBytesAsync(path, content, cancellationToken);
     }
+
+    public string GetPdfPath(RpiTipo tipo, int edicao) =>
+        Path.Combine(EditionDirectory(edicao), RpiFileNaming.PdfFileName(tipo, edicao));
+
+    public async Task SaveTxtAsync(RpiTipo tipo, int edicao, string content, CancellationToken cancellationToken)
+    {
+        var directory = EditionDirectory(edicao);
+        Directory.CreateDirectory(directory);
+
+        var path = Path.Combine(directory, RpiFileNaming.TxtFileName(tipo, edicao));
+        await File.WriteAllTextAsync(path, content, cancellationToken);
+    }
+
+    private string EditionDirectory(int edicao) => Path.Combine(options.Value.LocalWorkingDirectory, edicao.ToString());
 }

@@ -10,16 +10,18 @@ public sealed class ConvertRpiEditionToTxtUseCase(
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider)
 {
-    public async Task ExecuteAsync(RpiTipo tipo, int edicao, CancellationToken cancellationToken)
+    /// <summary>Retorna se a conversão teve sucesso, para quem chamou (ex: o controller, ao enfileirar) saber se deve encadear o upload pro Blob Storage.</summary>
+    public async Task<bool> ExecuteAsync(RpiTipo tipo, int edicao, CancellationToken cancellationToken)
     {
         var edition = await editionRepository.FindAsync(tipo, edicao, cancellationToken);
         if (edition is null)
         {
             // Não há RpiEdition (e portanto nenhum PDF baixado) para registrar a tentativa — nada a fazer.
-            return;
+            return false;
         }
 
         var startedAt = timeProvider.GetUtcNow();
+        bool succeeded;
 
         try
         {
@@ -38,13 +40,16 @@ public sealed class ConvertRpiEditionToTxtUseCase(
 
             var attempt = RpiProcessingAttempt.Success(edition.Id, ProcessingStage.ConvertToTxt, startedAt, timeProvider.GetUtcNow());
             await attemptRepository.AddAsync(attempt, cancellationToken);
+            succeeded = true;
         }
         catch (Exception ex)
         {
             var attempt = RpiProcessingAttempt.Failure(edition.Id, ProcessingStage.ConvertToTxt, ex.Message, startedAt, timeProvider.GetUtcNow());
             await attemptRepository.AddAsync(attempt, cancellationToken);
+            succeeded = false;
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        return succeeded;
     }
 }

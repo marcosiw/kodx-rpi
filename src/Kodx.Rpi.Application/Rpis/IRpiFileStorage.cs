@@ -12,4 +12,7 @@ public interface IRpiFileStorage
 
     /// <summary>Salva o texto convertido no mesmo diretório de trabalho local, para a fase de upload (Blob Storage) ler depois.</summary>
     Task SaveTxtAsync(RpiTipo tipo, int edicao, string content, CancellationToken cancellationToken);
+
+    /// <summary>Caminho local do TXT já convertido (fase de conversão precisa ter rodado antes).</summary>
+    string GetTxtPath(RpiTipo tipo, int edicao);
 }

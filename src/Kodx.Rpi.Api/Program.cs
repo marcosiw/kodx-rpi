@@ -62,6 +62,10 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddScoped<IRpiBlobStorage, AzureBlobRpiStorage>();
 builder.Services.AddScoped<UploadRpiEditionToBlobUseCase>();
 
+builder.Services.AddScoped<IRpiPublicationExtractor, RpiPublicationExtractor>();
+builder.Services.AddScoped<IPublicationRepository, PublicationRepository>();
+builder.Services.AddScoped<ExtractRpiPublicationsUseCase>();
+
 builder.Services.AddHttpClient<IRpiDownloader, InpiRpiDownloader>((sp, client) =>
 {
     var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<InpiOptions>>().Value;

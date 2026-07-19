@@ -13,7 +13,8 @@ public sealed class RpiDownloadController(IBackgroundTaskQueue taskQueue) : Cont
     /// Aciona o download em background de uma edição da RPI. Se <paramref name="edicao"/> não
     /// for informada, resolve a edição mais recente pelo calendário oficial do INPI. Em caso
     /// de sucesso, encadeia automaticamente a conversão para TXT e, em seguida, o upload do
-    /// PDF/TXT pro Blob Storage — tudo na mesma fila.
+    /// PDF/TXT pro Blob Storage e a extração das publicações — tudo na mesma fila. Upload e
+    /// extração são independentes entre si (cada um só depende da conversão ter funcionado).
     /// </summary>
     [HttpPost("{tipo}/download/{edicao?}")]
     public IActionResult Download(RpiTipo tipo, int? edicao)
@@ -38,6 +39,9 @@ public sealed class RpiDownloadController(IBackgroundTaskQueue taskQueue) : Cont
 
             var uploadUseCase = services.GetRequiredService<UploadRpiEditionToBlobUseCase>();
             await uploadUseCase.ExecuteAsync(tipo, downloadResult.Edicao, cancellationToken);
+
+            var extractUseCase = services.GetRequiredService<ExtractRpiPublicationsUseCase>();
+            await extractUseCase.ExecuteAsync(tipo, downloadResult.Edicao, cancellationToken);
         });
 
         return Accepted(new { tipo, edicao });

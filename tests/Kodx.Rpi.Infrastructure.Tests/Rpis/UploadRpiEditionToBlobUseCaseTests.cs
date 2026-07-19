@@ -98,6 +98,9 @@ public sealed class UploadRpiEditionToBlobUseCaseTests : IAsyncLifetime
             throw new NotSupportedException("Não usado nestes testes.");
 
         public string GetTxtPath(RpiTipo tipo, int edicao) => "caminho-fake.txt";
+
+        public Task<string> ReadTxtAsync(RpiTipo tipo, int edicao, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Não usado nestes testes.");
     }
 
     private sealed class FakeRpiBlobStorage(bool shouldFail = false) : IRpiBlobStorage

@@ -127,5 +127,8 @@ public sealed class ConvertRpiEditionToTxtUseCaseTests : IAsyncLifetime
         }
 
         public string GetTxtPath(RpiTipo tipo, int edicao) => "caminho-fake.txt";
+
+        public Task<string> ReadTxtAsync(RpiTipo tipo, int edicao, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Não usado nestes testes.");
     }
 }

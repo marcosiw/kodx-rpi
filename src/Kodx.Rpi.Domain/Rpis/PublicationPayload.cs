@@ -10,7 +10,5 @@ public sealed class PublicationPayload
     public IReadOnlyCollection<string> TodosNumeros { get; set; } = [];
     public int IndexInicio { get; set; }
     public int IndexFim { get; set; }
-    public string? Rodape { get; set; }
     public int Pagina { get; set; }
-    public string? Orgao { get; set; }
 }

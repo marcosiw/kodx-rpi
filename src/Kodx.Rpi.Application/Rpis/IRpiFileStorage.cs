@@ -15,4 +15,7 @@ public interface IRpiFileStorage
 
     /// <summary>Caminho local do TXT já convertido (fase de conversão precisa ter rodado antes).</summary>
     string GetTxtPath(RpiTipo tipo, int edicao);
+
+    /// <summary>Lê o conteúdo do TXT já convertido, para a fase de extração de publicações.</summary>
+    Task<string> ReadTxtAsync(RpiTipo tipo, int edicao, CancellationToken cancellationToken);
 }

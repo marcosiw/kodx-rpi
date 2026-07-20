@@ -114,6 +114,9 @@ public sealed class DownloadRpiEditionUseCaseTests : IAsyncLifetime
             throw new NotSupportedException("Não usado nestes testes.");
 
         public string GetTxtPath(RpiTipo tipo, int edicao) => throw new NotSupportedException("Não usado nestes testes.");
+
+        public Task<string> ReadTxtAsync(RpiTipo tipo, int edicao, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Não usado nestes testes.");
     }
 
     /// <summary>Simula o calendário indisponível, forçando o fallback pro cálculo por âncora (é o que estes testes exercitam).</summary>

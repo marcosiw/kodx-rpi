@@ -43,9 +43,7 @@ public sealed class KodxRpiDbContextTests : IAsyncLifetime
                 TodosNumeros = ["1234567-8"],
                 IndexInicio = 100,
                 IndexFim = 250,
-                Rodape = "Página 1 de 500",
-                Pagina = 1,
-                Orgao = "INPI"
+                Pagina = 1
             };
 
             context.Publications.Add(new Publication(rpiEditionId, "1234567-8", payload));

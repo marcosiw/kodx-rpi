@@ -1,5 +1,6 @@
 using Kodx.Rpi.Domain.Rpis;
 using Kodx.Rpi.Infrastructure.Persistence;
+using Kodx.Rpi.Infrastructure.Tests;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kodx.Rpi.Infrastructure.Tests.Persistence;
@@ -17,7 +18,7 @@ public sealed class KodxRpiDbContextTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await using var context = CreateContext();
-        await context.Database.MigrateAsync();
+        await TestDatabaseMigrator.MigrateAsync(context);
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

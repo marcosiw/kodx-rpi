@@ -2,6 +2,7 @@ using System.Text;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Kodx.Rpi.Api.Grpc;
+using Kodx.Rpi.Api.Tests;
 using Microsoft.EntityFrameworkCore;
 using RpiDomain = Kodx.Rpi.Domain.Rpis;
 
@@ -17,7 +18,7 @@ public sealed class RpiGrpcServiceTests(RpiApiFactory factory) : IClassFixture<R
     public async Task InitializeAsync()
     {
         await using var context = factory.CreateDbContext();
-        await context.Database.MigrateAsync();
+        await TestDatabaseMigrator.MigrateAsync(context);
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

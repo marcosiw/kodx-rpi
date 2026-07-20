@@ -124,5 +124,8 @@ public sealed class UploadRpiEditionToBlobUseCaseTests : IAsyncLifetime
             TxtUploaded = true;
             return Task.CompletedTask;
         }
+
+        public Task<Stream> DownloadPdfAsync(RpiTipo tipo, int edicao, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Não usado nestes testes.");
     }
 }

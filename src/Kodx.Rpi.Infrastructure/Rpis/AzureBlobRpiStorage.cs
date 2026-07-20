@@ -17,6 +17,14 @@ public sealed class AzureBlobRpiStorage(BlobServiceClient blobServiceClient, IOp
     public Task UploadTxtAsync(RpiTipo tipo, int edicao, string localTxtPath, CancellationToken cancellationToken) =>
         UploadAsync(tipo, edicao, localTxtPath, RpiFileNaming.TxtFileName(tipo, edicao), extensao: "txt", cancellationToken);
 
+    public async Task<Stream> DownloadPdfAsync(RpiTipo tipo, int edicao, CancellationToken cancellationToken)
+    {
+        var containerClient = blobServiceClient.GetBlobContainerClient(options.Value.ContainerName);
+        var blobClient = containerClient.GetBlobClient($"{edicao}/{RpiFileNaming.PdfFileName(tipo, edicao)}");
+
+        return await blobClient.OpenReadAsync(cancellationToken: cancellationToken);
+    }
+
     private async Task UploadAsync(RpiTipo tipo, int edicao, string localPath, string fileName, string extensao, CancellationToken cancellationToken)
     {
         var containerClient = blobServiceClient.GetBlobContainerClient(options.Value.ContainerName);

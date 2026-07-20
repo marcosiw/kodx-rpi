@@ -8,4 +8,7 @@ public interface IRpiBlobStorage
     Task UploadPdfAsync(RpiTipo tipo, int edicao, string localPdfPath, CancellationToken cancellationToken);
 
     Task UploadTxtAsync(RpiTipo tipo, int edicao, string localTxtPath, CancellationToken cancellationToken);
+
+    /// <summary>Stream de leitura do PDF já processado (lança se o blob não existir).</summary>
+    Task<Stream> DownloadPdfAsync(RpiTipo tipo, int edicao, CancellationToken cancellationToken);
 }

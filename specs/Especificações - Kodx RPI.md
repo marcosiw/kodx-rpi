@@ -31,7 +31,7 @@ A aplicação terá logs estruturados que deverão mapear o recebimento de uma r
 
 Os scripts dos jobs serão escritos para rodar cronjobs em um sistema ubuntu 24.04, deverão ser armazenados numa pasta scripts e terão seu detalhamento feito e atualizado nas docs do repositório como parte do código. 
 
-Os endpoints da aplicação terão documentação swagger, precisarão de chave de API para serem acessados e deverão ter configuração de timeout default ou especifica caso necessário.
+Os endpoints privados (item acima) são servidos via gRPC, não REST — decisão tomada na fase 8 do plano. Documentação/exploração via server reflection (`Grpc.AspNetCore.Server.Reflection`) + coleção Bruno versionada em `docs/Kodx API/` (Bruno tem suporte a gRPC, incluindo reflection e streaming, desde a v2.10) no lugar de Swagger. Endpoints precisam de chave de API (mesma convenção de header, agora lida via metadata gRPC) e deverão ter configuração de timeout default ou especifica caso necessário.
 
 Para o desenvolvimento usaremos localmente o direnv, com arquivo local .envrc, não versionado. 
 

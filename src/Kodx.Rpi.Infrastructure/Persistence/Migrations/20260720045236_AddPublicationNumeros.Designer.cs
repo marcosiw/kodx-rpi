@@ -3,6 +3,7 @@ using System;
 using Kodx.Rpi.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Kodx.Rpi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(KodxRpiDbContext))]
-    partial class KodxRpiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260720045236_AddPublicationNumeros")]
+    partial class AddPublicationNumeros
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

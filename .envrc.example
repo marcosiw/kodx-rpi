@@ -11,11 +11,19 @@ export ASPNETCORE_ENVIRONMENT=Development
 
 # Portas gRPC (8080) e /health (8081) já vêm com default em appsettings.json (Kestrel:Endpoints).
 # Só defina as variáveis abaixo se quiser sobrescrever localmente:
-# export Kestrel__Endpoints__Grpc__Url=http://localhost:8080
+# export Kestrel__Endpoints__Grpc__Url=https://localhost:8080
 # export Kestrel__Endpoints__Health__Url=http://localhost:8081
 
 # Chave de API exigida no header X-Api-Key pelas requisições ao serviço.
 export ApiKey__Value=local-dev-key
+
+# mTLS do endpoint gRPC (porta 8080) — ver ai/context.md pra decisão completa.
+# TLS é sempre exigido nessa porta; em Development, Grpc:Mtls:Enabled já vem
+# sobrescrito pra false (só o certificado de servidor é obrigatório, não o de cliente).
+# Gere os certificados primeiro: ./scripts/generate-mtls-certs.sh init
+export Grpc__Mtls__ServerCertificatePath="$PWD/certs/server.crt"
+export Grpc__Mtls__ServerKeyPath="$PWD/certs/server.key"
+export Grpc__Mtls__ClientCaCertificatePath="$PWD/certs/ca.crt"
 
 # Postgres local (docker-compose.yml na raiz do repo: docker compose up -d)
 export ConnectionStrings__Postgres="Host=localhost;Port=5432;Database=kodx_rpi;Username=postgres;Password=postgres"

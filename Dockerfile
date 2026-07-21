@@ -15,6 +15,10 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app .
 
+# Certificados do mTLS (Grpc:Mtls, porta 8080) NÃO entram na imagem — ela é publicada
+# no GHCR e chave privada de servidor não pode viajar num artefato versionado/público.
+# Esperado em /app/certs via volume montado em runtime (ver docker-compose.yml e
+# scripts/generate-mtls-certs.sh).
 EXPOSE 8080 8081
 
 ENTRYPOINT ["dotnet", "Kodx.Rpi.Api.dll"]

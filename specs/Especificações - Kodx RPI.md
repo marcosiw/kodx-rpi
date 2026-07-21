@@ -31,7 +31,7 @@ A aplicação terá logs estruturados que deverão mapear o recebimento de uma r
 
 O acionamento periódico das rotinas de download é feito por um worker interno da aplicação (`BackgroundService`), não por cronjobs do sistema operacional — ver decisão acima e em `ai/context.md`, fase 9.
 
-Os endpoints privados (item acima) são servidos via gRPC, não REST — decisão tomada na fase 8 do plano. Documentação/exploração via server reflection (`Grpc.AspNetCore.Server.Reflection`) + coleção Bruno versionada em `docs/Kodx API/` (Bruno tem suporte a gRPC, incluindo reflection e streaming, desde a v2.10) no lugar de Swagger. Endpoints precisam de chave de API (mesma convenção de header, agora lida via metadata gRPC) e deverão ter configuração de timeout default ou especifica caso necessário.
+Os endpoints privados (item acima) são servidos via gRPC, não REST — decisão tomada na fase 8 do plano. Documentação/exploração via server reflection (`Grpc.AspNetCore.Server.Reflection`) + coleção Bruno versionada em `docs/Kodx API/` (Bruno tem suporte a gRPC, incluindo reflection e streaming, desde a v2.10) no lugar de Swagger. Endpoints precisam de chave de API (mesma convenção de header, agora lida via metadata gRPC) e deverão ter configuração de timeout default ou especifica caso necessário. O transporte exige TLS e, por padrão, mTLS (certificado de cliente) — decisão tomada na fase 13 do plano, com flag pra desligar só a exigência de certificado de cliente (nunca o TLS em si); ver `ai/context.md`.
 
 Para o desenvolvimento usaremos localmente o direnv, com arquivo local .envrc, não versionado. 
 

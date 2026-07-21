@@ -10,7 +10,10 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ApiKey__Value": "",
         "ConnectionStrings__Postgres": "",
-        "BlobStorage__ConnectionString": ""
+        "BlobStorage__ConnectionString": "",
+        "Grpc__Mtls__ServerCertificatePath": "",
+        "Grpc__Mtls__ServerKeyPath": "",
+        "Grpc__Mtls__ClientCaCertificatePath": ""
       }
     },
     "https": {
@@ -22,7 +25,10 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ApiKey__Value": "",
         "ConnectionStrings__Postgres": "",
-        "BlobStorage__ConnectionString": ""
+        "BlobStorage__ConnectionString": "",
+        "Grpc__Mtls__ServerCertificatePath": "",
+        "Grpc__Mtls__ServerKeyPath": "",
+        "Grpc__Mtls__ClientCaCertificatePath": ""
       }
     }
   }

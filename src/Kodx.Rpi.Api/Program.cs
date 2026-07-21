@@ -30,10 +30,16 @@ builder.Host.UseSerilog((context, services, configuration) =>
 });
 
 // Portas separadas pra gRPC (Http2) e /health (Http1) — ver "Kestrel:Endpoints" em
-// appsettings.json. Sem TLS, Kestrel não multiplexa HTTP/1.1 e HTTP/2 de forma confiável na
-// mesma porta (confirmado rodando de verdade: grpcurl trava em vez de negociar h2c quando as
-// duas coisas dividem uma porta em Http1AndHttp2) — por isso são dois endpoints dedicados, não
-// um único com os dois protocolos habilitados.
+// appsettings.json. Sem TLS, Kestrel não multiplexava HTTP/1.1 e HTTP/2 de forma confiável na
+// mesma porta (confirmado rodando de verdade: grpcurl travava em vez de negociar h2c quando as
+// duas coisas dividiam uma porta em Http1AndHttp2) — por isso são dois endpoints dedicados, não
+// um único com os dois protocolos habilitados. Desde a fase de mTLS, "Grpc" é https (Grpc:Mtls
+// abaixo); "Health" continua http puro, só liveness. Ver decisão completa em ai/context.md.
+
+var grpcMtlsOptions = builder.Configuration.GetSection(GrpcMtlsOptions.SectionName).Get<GrpcMtlsOptions>()
+    ?? new GrpcMtlsOptions();
+builder.Services.AddOptions<GrpcMtlsOptions>().Bind(builder.Configuration.GetSection(GrpcMtlsOptions.SectionName));
+builder.WebHost.ConfigureKestrel(serverOptions => GrpcMtlsSetup.Configure(serverOptions, grpcMtlsOptions));
 
 builder.Services.AddGrpc();
 if (builder.Environment.IsDevelopment())

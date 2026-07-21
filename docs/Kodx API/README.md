@@ -20,6 +20,25 @@ feita pelo próprio [Bruno](https://www.usebruno.com/) usando **server reflectio
    ApiKey__Value>` (mesmo mecanismo de sempre, só que como metadata gRPC em vez de header
    HTTP puro).
 
+## Configurando mTLS pra testar
+
+Desde a fase 13, o endpoint gRPC (porta 8080) sempre exige TLS e, por padrão
+(`Grpc:Mtls:Enabled=true`), também um certificado de cliente — ver decisão completa em
+`ai/context.md`. Em `Development` essa exigência de certificado de cliente vem desligada por
+padrão (`appsettings.Development.json`), então rodando localmente o passo abaixo normalmente
+não é necessário; ele importa pra testar contra um ambiente com `Grpc:Mtls:Enabled=true`.
+
+1. Gere os certificados (se ainda não tiver): `./scripts/generate-mtls-certs.sh init` — cria
+   `./certs/ca.crt`, `./certs/client.crt`/`client.key` e `./certs/client.pfx`.
+2. **Não verificamos ainda se o cliente gRPC (beta) do Bruno aceita configurar um certificado
+   de cliente pra mTLS** — checar nas configurações da request/coleção antes de depender
+   disso; se não for suportado, use `grpcurl` como alternativa garantida:
+   ```
+   grpcurl -cacert certs/ca.crt -cert certs/client.crt -key certs/client.key \
+     -H 'x-api-key: <valor de ApiKey__Value>' localhost:8080 list
+   ```
+   Se o Bruno exigir PKCS#12 em vez de PEM separado, use `certs/client.pfx` (senha `kodx-rpi`).
+
 ## Métodos disponíveis (`rpi.RpiService`)
 
 - `TriggerDownload` — unário. Migração do antigo `POST /rpis/{tipo}/download/{edicao?}`.

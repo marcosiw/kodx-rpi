@@ -1,4 +1,5 @@
 using Azure.Storage.Blobs;
+using Kodx.Rpi.Api.Grpc;
 using Kodx.Rpi.Api.Security;
 using Kodx.Rpi.Application;
 using Kodx.Rpi.Application.Rpis;
@@ -28,10 +29,17 @@ builder.Host.UseSerilog((context, services, configuration) =>
     }
 });
 
-builder.Services.AddControllers();
+// Portas separadas pra gRPC (Http2) e /health (Http1) — ver "Kestrel:Endpoints" em
+// appsettings.json. Sem TLS, Kestrel não multiplexa HTTP/1.1 e HTTP/2 de forma confiável na
+// mesma porta (confirmado rodando de verdade: grpcurl trava em vez de negociar h2c quando as
+// duas coisas dividem uma porta em Http1AndHttp2) — por isso são dois endpoints dedicados, não
+// um único com os dois protocolos habilitados.
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddGrpc();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddGrpcReflection();
+}
 
 builder.Services.AddOptions<ApiKeyOptions>()
     .Bind(builder.Configuration.GetSection(ApiKeyOptions.SectionName));
@@ -105,21 +113,17 @@ var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
-
 app.UseRequestTimeouts();
 
 app.UseMiddleware<ApiKeyMiddleware>();
 
-app.UseAuthorization();
+app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
-app.MapControllers();
+app.MapGrpcService<RpiGrpcService>();
+if (app.Environment.IsDevelopment())
+{
+    app.MapGrpcReflectionService();
+}
 
 app.Run();
 

@@ -8,6 +8,7 @@ public sealed class KodxRpiDbContext(DbContextOptions<KodxRpiDbContext> options)
     public DbSet<RpiEdition> RpiEditions => Set<RpiEdition>();
     public DbSet<RpiProcessingAttempt> RpiProcessingAttempts => Set<RpiProcessingAttempt>();
     public DbSet<Publication> Publications => Set<Publication>();
+    public DbSet<PublicationNumero> PublicationNumeros => Set<PublicationNumero>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

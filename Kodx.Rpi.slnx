@@ -6,6 +6,7 @@
     <Project Path="src/Kodx.Rpi.Infrastructure/Kodx.Rpi.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Kodx.Rpi.Api.Tests/Kodx.Rpi.Api.Tests.csproj" />
     <Project Path="tests/Kodx.Rpi.Application.Tests/Kodx.Rpi.Application.Tests.csproj" />
     <Project Path="tests/Kodx.Rpi.Infrastructure.Tests/Kodx.Rpi.Infrastructure.Tests.csproj" />
   </Folder>

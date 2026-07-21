@@ -8,7 +8,11 @@
 # só entregue por um caminho diferente.
 
 export ASPNETCORE_ENVIRONMENT=Development
-export ASPNETCORE_URLS=http://localhost:5181
+
+# Portas gRPC (8080) e /health (8081) já vêm com default em appsettings.json (Kestrel:Endpoints).
+# Só defina as variáveis abaixo se quiser sobrescrever localmente:
+# export Kestrel__Endpoints__Grpc__Url=http://localhost:8080
+# export Kestrel__Endpoints__Health__Url=http://localhost:8081
 
 # Chave de API exigida no header X-Api-Key pelas requisições ao serviço.
 export ApiKey__Value=local-dev-key

@@ -2,6 +2,7 @@ using Kodx.Rpi.Application;
 using Kodx.Rpi.Application.Rpis;
 using Kodx.Rpi.Domain.Rpis;
 using Kodx.Rpi.Infrastructure.Persistence;
+using Kodx.Rpi.Infrastructure.Tests;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Time.Testing;
 
@@ -20,7 +21,7 @@ public sealed class DownloadRpiEditionUseCaseTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await using var context = CreateContext();
-        await context.Database.MigrateAsync();
+        await TestDatabaseMigrator.MigrateAsync(context);
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

@@ -15,7 +15,7 @@ Diagrama I - Arquitetura
 
 RPI Service tem dependência do site do INPI, de onde vai fazer o download dos arquivos pdf. Também depende do Azure Blob Storage, onde armazena e busca RPIs salvas com extensão pdf - formato original baixado do INPI - e extensão txt transformado pelo serviço neste formato afim de facilitar a leitura. Além disso, disso depende de um banco de dados no qual salva as publicações individualizadas das RPIs e armazena histórico dos downloads e transformações (tentativa com sucesso e as falhas). Portanto, no banco de dados será possível saber quais RPIs e em quais formatos estão disponíveis e quais estão com problemas.
 
-RPI Service terá suas rotinas de downloads acionadas por jobs que rodarão na instância (linux ubuntu), através de scritpts salvos no próprio repositório do RPI Service. Esses jobs serão executados de acordo com a configuração de seus códigos, chamando endpoints da rpi service que executam rotinas necessárias em background. 
+RPI Service terá suas rotinas de downloads acionadas por um worker interno da própria aplicação (`BackgroundService` em loop) — decisão tomada na fase 9 do plano, substituindo a ideia original de scripts de cronjob externos rodando na instância Ubuntu. O worker verifica periodicamente, usando o calendário oficial do INPI, se há uma edição nova pra processar e, se houver, dispara o pipeline chamando os use cases diretamente (sem depender de rede/gRPC pra si mesmo). Ver `ai/context.md` pra decisões e arquitetura.
 
 O RPI Service servirá endpoints privados para o kodx api para passar informações da RPI, fazer downloads dos PDFs ou pesquisar publicações de edição especifica das RPIs. 
 
@@ -29,9 +29,9 @@ Usaremos como CI o GithubActions que contará com etapa de sec, rodada de testes
 
 A aplicação terá logs estruturados que deverão mapear o recebimento de uma request e sua saida como info se tudo correr com sucesso. Em caso de alteração de recurso (create, update, delete, etc) deverá registrar um log especifico para tanto. Em caso de log relevante para a regra de negócio outro log info. Se houver erro em qualquer camada, log de erro. 
 
-Os scripts dos jobs serão escritos para rodar cronjobs em um sistema ubuntu 24.04, deverão ser armazenados numa pasta scripts e terão seu detalhamento feito e atualizado nas docs do repositório como parte do código. 
+O acionamento periódico das rotinas de download é feito por um worker interno da aplicação (`BackgroundService`), não por cronjobs do sistema operacional — ver decisão acima e em `ai/context.md`, fase 9.
 
-Os endpoints da aplicação terão documentação swagger, precisarão de chave de API para serem acessados e deverão ter configuração de timeout default ou especifica caso necessário.
+Os endpoints privados (item acima) são servidos via gRPC, não REST — decisão tomada na fase 8 do plano. Documentação/exploração via server reflection (`Grpc.AspNetCore.Server.Reflection`) + coleção Bruno versionada em `docs/Kodx API/` (Bruno tem suporte a gRPC, incluindo reflection e streaming, desde a v2.10) no lugar de Swagger. Endpoints precisam de chave de API (mesma convenção de header, agora lida via metadata gRPC) e deverão ter configuração de timeout default ou especifica caso necessário.
 
 Para o desenvolvimento usaremos localmente o direnv, com arquivo local .envrc, não versionado. 
 

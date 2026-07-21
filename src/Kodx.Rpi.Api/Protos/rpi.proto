@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+option csharp_namespace = "Kodx.Rpi.Api.Grpc";
+
+package rpi;
+
+// Endpoints privados consumidos pelo Kodx API (e outros serviços consumidores) — ver
+// ai/context.md, item 8 do plano. Substitui os endpoints REST anteriores (fase 8).
+service RpiService {
+  // Migração do antigo POST /rpis/{tipo}/download/{edicao?}: enfileira o pipeline
+  // (download -> conversão -> upload/extração) em background e responde na hora.
+  rpc TriggerDownload(TriggerDownloadRequest) returns (TriggerDownloadReply);
+
+  // Consulta de RPI: dados da edição + histórico de tentativas de processamento.
+  rpc GetRpiHistory(GetRpiHistoryRequest) returns (RpiHistoryReply);
+
+  // Download do PDF já processado, servido a partir do Blob Storage (fonte durável).
+  // Server-streaming porque alguns PDFs reais passam de 30MB.
+  rpc DownloadPdf(DownloadPdfRequest) returns (stream DownloadPdfChunk);
+
+  // Busca publicações por um conjunto de números de processo — em lote (não um número por
+  // chamada): numero já é indexado, então uma lista vira uma única query "= ANY(...)" no
+  // banco, independente de terem 5 ou 5000 números. tipo/edicao são opcionais: se omitidos,
+  // busca os números em todo o histórico já processado (não só numa edição). Server-streaming
+  // porque o resultado pode abranger várias edições.
+  rpc SearchRpiPublications(SearchRpiPublicationsRequest) returns (stream PublicationReply);
+}
+
+enum RpiTipo {
+  RPI_TIPO_UNSPECIFIED = 0;
+  COMUNICADOS = 1;
+  CONTRATOS_TECNOLOGIA = 2;
+  DESENHOS_INDUSTRIAIS = 3;
+  INDICACOES_GEOGRAFICAS = 4;
+  MARCAS = 5;
+  PATENTES = 6;
+  PROGRAMAS_COMPUTADOR = 7;
+  TOPOGRAFIA_CIRCUITOS = 8;
+}
+
+enum ProcessingStage {
+  PROCESSING_STAGE_UNSPECIFIED = 0;
+  DOWNLOAD = 1;
+  CONVERT_TO_TXT = 2;
+  EXTRACT_PUBLICATIONS = 3;
+  UPLOAD_BLOB = 4;
+}
+
+enum ProcessingStatus {
+  PROCESSING_STATUS_UNSPECIFIED = 0;
+  SUCCESS = 1;
+  FAILURE = 2;
+}
+
+message TriggerDownloadRequest {
+  RpiTipo tipo = 1;
+  optional int32 edicao = 2;
+}
+
+message TriggerDownloadReply {
+  RpiTipo tipo = 1;
+  // Ausente quando o cliente não informou a edição — ela só é resolvida (calendário do
+  // INPI) dentro do job em background enfileirado por esta chamada.
+  optional int32 edicao = 2;
+}
+
+message GetRpiHistoryRequest {
+  RpiTipo tipo = 1;
+  int32 edicao = 2;
+}
+
+message RpiHistoryReply {
+  int32 edicao = 1;
+  RpiTipo tipo = 2;
+  string data_publicacao = 3; // ISO 8601
+  repeated ProcessingAttempt attempts = 4;
+}
+
+message ProcessingAttempt {
+  ProcessingStage stage = 1;
+  ProcessingStatus status = 2;
+  string error_message = 3; // vazio quando status = SUCCESS
+  string started_at = 4; // ISO 8601
+  string finished_at = 5; // ISO 8601
+}
+
+message DownloadPdfRequest {
+  RpiTipo tipo = 1;
+  int32 edicao = 2;
+}
+
+message DownloadPdfChunk {
+  bytes data = 1;
+}
+
+message SearchRpiPublicationsRequest {
+  repeated string numeros = 1;
+  optional RpiTipo tipo = 2;
+  optional int32 edicao = 3;
+}
+
+message PublicationReply {
+  string numero = 1;
+  string cabecalho1 = 2;
+  string cabecalho2 = 3;
+  string cabecalho3 = 4;
+  string conteudo = 5;
+  repeated string todos_numeros = 6;
+  int32 index_inicio = 7;
+  int32 index_fim = 8;
+  int32 pagina = 9;
+  // De qual edição/tipo veio esta publicação — necessário porque a busca pode abranger
+  // várias edições ao mesmo tempo (quando tipo/edicao não são informados no request).
+  RpiTipo tipo = 10;
+  int32 edicao = 11;
+}

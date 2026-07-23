@@ -1,4 +1,4 @@
-using Kodx.Rpi.Infrastructure.BackgroundProcessing;
+using Kodx.Rpi.Application.Rpis;
 
 namespace Kodx.Rpi.Api.Tests.Grpc;
 

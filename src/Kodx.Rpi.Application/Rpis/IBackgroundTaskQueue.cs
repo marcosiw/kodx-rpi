@@ -1,4 +1,4 @@
-namespace Kodx.Rpi.Infrastructure.BackgroundProcessing;
+namespace Kodx.Rpi.Application.Rpis;
 
 public interface IBackgroundTaskQueue
 {

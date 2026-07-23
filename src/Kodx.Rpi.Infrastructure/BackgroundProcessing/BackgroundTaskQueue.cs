@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using Kodx.Rpi.Application.Rpis;
 
 namespace Kodx.Rpi.Infrastructure.BackgroundProcessing;
 

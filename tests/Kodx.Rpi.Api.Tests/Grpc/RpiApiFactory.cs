@@ -1,5 +1,4 @@
 using Kodx.Rpi.Application.Rpis;
-using Kodx.Rpi.Infrastructure.BackgroundProcessing;
 using Kodx.Rpi.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;

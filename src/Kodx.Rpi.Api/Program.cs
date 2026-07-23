@@ -80,6 +80,9 @@ builder.Services.AddScoped<IRpiPublicationExtractor, RpiPublicationExtractor>();
 builder.Services.AddScoped<IPublicationRepository, PublicationRepository>();
 builder.Services.AddScoped<ExtractRpiPublicationsUseCase>();
 
+builder.Services.AddScoped<RunRpiPipelineUseCase>();
+builder.Services.AddScoped<ProcessDueRpiEditionsUseCase>();
+
 builder.Services.AddHttpClient<IRpiDownloader, InpiRpiDownloader>((sp, client) =>
 {
     var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<InpiOptions>>().Value;
@@ -106,6 +109,9 @@ builder.Services.AddSingleton(sp =>
 
 builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
 builder.Services.AddHostedService<QueuedHostedService>();
+
+builder.Services.AddOptions<RpiWorkerOptions>().Bind(builder.Configuration.GetSection(RpiWorkerOptions.SectionName));
+builder.Services.AddHostedService<RpiWorker>();
 
 builder.Services.AddRequestTimeouts(options =>
 {

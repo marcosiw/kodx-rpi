@@ -2,7 +2,6 @@ using System.Globalization;
 using Google.Protobuf;
 using Grpc.Core;
 using Kodx.Rpi.Application.Rpis;
-using Kodx.Rpi.Infrastructure.BackgroundProcessing;
 using DomainRpiTipo = Kodx.Rpi.Domain.Rpis.RpiTipo;
 
 namespace Kodx.Rpi.Api.Grpc;
@@ -26,30 +25,8 @@ public sealed class RpiGrpcService(
         var tipo = (DomainRpiTipo)request.Tipo;
         int? edicao = request.HasEdicao ? request.Edicao : null;
 
-        taskQueue.Enqueue(async (services, cancellationToken) =>
-        {
-            var downloadUseCase = services.GetRequiredService<DownloadRpiEditionUseCase>();
-            var downloadResult = await downloadUseCase.ExecuteAsync(tipo, edicao, cancellationToken);
-
-            if (!downloadResult.Success)
-            {
-                return;
-            }
-
-            var convertUseCase = services.GetRequiredService<ConvertRpiEditionToTxtUseCase>();
-            var converted = await convertUseCase.ExecuteAsync(tipo, downloadResult.Edicao, cancellationToken);
-
-            if (!converted)
-            {
-                return;
-            }
-
-            var uploadUseCase = services.GetRequiredService<UploadRpiEditionToBlobUseCase>();
-            await uploadUseCase.ExecuteAsync(tipo, downloadResult.Edicao, cancellationToken);
-
-            var extractUseCase = services.GetRequiredService<ExtractRpiPublicationsUseCase>();
-            await extractUseCase.ExecuteAsync(tipo, downloadResult.Edicao, cancellationToken);
-        });
+        taskQueue.Enqueue((services, cancellationToken) =>
+            services.GetRequiredService<RunRpiPipelineUseCase>().ExecuteAsync(tipo, edicao, cancellationToken));
 
         // A edição real só é conhecida depois de resolvida em background (calendário do INPI)
         // quando não vier explícita — mesmo comportamento de "202 Accepted" do endpoint REST anterior.

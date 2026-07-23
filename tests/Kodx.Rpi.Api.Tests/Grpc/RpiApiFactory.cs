@@ -15,6 +15,11 @@ namespace Kodx.Rpi.Api.Tests.Grpc;
 /// Blob Storage por fakes — os testes de gRPC não devem depender do INPI/Azure reais — mas
 /// mantém o Postgres real (mesmo docker-compose/env var já usado pelos outros testes de
 /// integração do projeto).
+///
+/// Transporte em memória (TestServer), não Kestrel real: o handshake TLS/mTLS configurado em
+/// Program.cs via ConfigureKestrel (Grpc:Mtls) não é exercido aqui — mesma classe de ponto cego
+/// já documentada em ai/context.md pro bug de multiplexing h2c da fase 8. Cobertura real de
+/// TLS/mTLS é manual, via grpcurl (ver ai/context.md).
 /// </summary>
 public sealed class RpiApiFactory : WebApplicationFactory<Program>
 {

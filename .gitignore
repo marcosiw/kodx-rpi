@@ -14,6 +14,9 @@ coverage*/
 # Diretório de trabalho local (PDFs baixados de RPIs, antes de subir pro Blob Storage)
 /data/
 
+# Certificados/chaves do mTLS (gerados por scripts/generate-mtls-certs.sh) - nunca versionar
+/certs/
+
 # direnv (segredos locais)
 .envrc
 .env
